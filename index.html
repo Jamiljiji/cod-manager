@@ -1370,7 +1370,7 @@ let db = {
     interval: 2,
     lastSync: null,
     fixedPrice: 7500,
-    columnMap: { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3 }
+    columnMap: { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: -1 }
   }, tarifs:{},
 };
 let cmdSeq = 1;
@@ -1544,16 +1544,16 @@ async function syncSheets() {
       const rowIndex = i + 1; // +1 car on a slicé après l'en-tête
       if (existingRows.has(rowIndex)) return; // déjà importé
 
-      // Chercher le nom — essayer la colonne configurée et les colonnes voisines
-      let nomRaw = (row[colMap.nom] || '').trim();
-      // Si la colonne configurée est vide, essayer les colonnes adjacentes
+      // Nom client — colonne E (index 4) en priorité absolue
+      const nomCol1 = (colMap.nom !== undefined && colMap.nom >= 0) ? colMap.nom : 4;
+      let nomRaw = (row[nomCol1] || '').toString().trim();
+      // Fallback: chercher dans D, F, C, G si E est vide
       if (!nomRaw) {
-        for (let col = 0; col < Math.min(row.length, 15); col++) {
-          const val = (row[col] || '').trim();
-          // Chercher une valeur qui ressemble à un nom (pas un email, pas un nombre, pas trop long)
-          if (val && val.length > 1 && val.length < 50 && !/^\d+$/.test(val) && !val.includes('@') && !val.includes('http') && col !== colMap.tel && col !== colMap.wilaya) {
-            nomRaw = val;
-            break;
+        for (const col of [3, 5, 2, 6, 1, 7]) {
+          if (col === colMap.tel || col >= row.length) continue;
+          const val = (row[col] || '').toString().trim();
+          if (val && val.length > 1 && val.length < 60 && !/^\d{7,}$/.test(val) && !val.includes('@') && !val.includes('http')) {
+            nomRaw = val; break;
           }
         }
       }
@@ -4456,34 +4456,103 @@ function setLang(lang) {
   currentLang = lang;
   localStorage.setItem('cod-lang', lang);
   const isAr = lang === 'ar';
+
+  // 1. Direction HTML globale
   document.documentElement.dir = isAr ? 'rtl' : 'ltr';
   document.documentElement.lang = lang;
-  // Update RTL style
+  document.body.dir = isAr ? 'rtl' : 'ltr';
+
+  // 2. Police arabe
+  if (isAr) {
+    document.body.style.fontFamily = "'Cairo', 'Syne', sans-serif";
+  } else {
+    document.body.style.fontFamily = "'Syne', sans-serif";
+  }
+
+  // 3. CSS RTL complet
   const rtlStyle = document.getElementById('rtl-style');
   if (rtlStyle) {
     rtlStyle.textContent = isAr ? `
-      .sidebar { left:auto; right:0; border-right:none; border-left:1px solid var(--border); }
-      .main { margin-left:0; margin-right:220px; }
-      .ni { border-left:none; border-right:2px solid transparent; flex-direction:row-reverse; }
-      .ni.on { border-left:none; border-right-color:var(--accent); }
-      .nbadge { margin-left:0; margin-right:auto; }
-      .tb-left { flex-direction:row-reverse; }
-      .tb-right { flex-direction:row-reverse; }
-      .user-row { flex-direction:row-reverse; }
-      .role-switch { margin-left:0; margin-right:auto; }
-      td, th { text-align:right; }
-      .badge { flex-direction:row-reverse; }
-      .sbar { flex-direction:row-reverse; }
-      .ch { flex-direction:row-reverse; }
-      .pbar { direction:ltr; }
+      /* Layout RTL */
+      .sidebar {
+        left: auto !important;
+        right: 0 !important;
+        border-right: none !important;
+        border-left: 1px solid var(--border) !important;
+      }
+      .main {
+        margin-left: 0 !important;
+        margin-right: 220px !important;
+      }
+      /* Nav items */
+      .ni {
+        border-left: none !important;
+        border-right: 2px solid transparent !important;
+        flex-direction: row-reverse !important;
+        text-align: right !important;
+      }
+      .ni.on {
+        border-left: none !important;
+        border-right-color: var(--accent) !important;
+      }
+      .nbadge { margin-left: 0 !important; margin-right: auto !important; }
+      /* Topbar */
+      .tb-left { flex-direction: row-reverse !important; }
+      .tb-right { flex-direction: row-reverse !important; }
+      .topbar { flex-direction: row-reverse !important; }
+      /* Sidebar footer */
+      .user-row { flex-direction: row-reverse !important; }
+      .role-switch { margin-left: 0 !important; margin-right: auto !important; }
+      /* Tables */
+      td, th { text-align: right !important; }
+      table { direction: rtl !important; }
+      /* Cards */
+      .ch { flex-direction: row-reverse !important; }
+      .sc-ico { right: auto !important; left: 12px !important; }
+      /* Forms */
+      .fg label, .fl { text-align: right !important; display: block !important; }
+      .fr, .fr3 { direction: rtl !important; }
+      /* Badges */
+      .badge { flex-direction: row-reverse !important; }
+      /* Search bar */
+      .sbar { flex-direction: row-reverse !important; }
+      .si .sico { left: auto !important; right: 10px !important; }
+      .si input { padding: 9px 34px 9px 12px !important; }
+      /* Progress bars always LTR */
+      .pbar, .pfill { direction: ltr !important; }
+      /* Stats */
+      .sc-lbl, .sc-val, .sc-sub { text-align: right !important; }
+      /* Modal */
+      .mh { flex-direction: row-reverse !important; }
+      .mf { flex-direction: row-reverse !important; }
+      /* Font Cairo partout */
+      *, body, .ni, .ct, .tb-title, td, th, .btn, .sc-lbl, .fl, .badge, .ph-label, .fi, .fs, .fta {
+        font-family: 'Cairo', 'Syne', sans-serif !important;
+      }
+      /* Text alignement général */
+      p, div, span, label, input, select, textarea, button {
+        text-align: inherit;
+      }
+      .card-body, .cb { text-align: right !important; }
+      /* Logo */
+      .logo { flex-direction: row-reverse !important; }
+      /* Pipeline */
+      .pipeline { flex-direction: row-reverse !important; }
+      /* Stat cards */
+      .stats-row .sc { text-align: right !important; }
     ` : '';
   }
+
   applyTranslations();
-  // Update lang switcher UI
+
+  // 4. Update lang switcher buttons
   document.querySelectorAll('.lang-btn').forEach(b => {
     b.style.opacity = b.dataset.lang === lang ? '1' : '0.4';
     b.style.borderColor = b.dataset.lang === lang ? 'var(--accent)' : 'var(--border)';
   });
+
+  // 5. Re-render current page to apply translations
+  renderAll();
 }
 
 // ── Apply translations to all data-i18n elements
@@ -5600,12 +5669,14 @@ async function syncProductSheet(prodId) {
       const rowIndex = i + 1;
       if (existingRows.has(rowIndex)) return;
 
-      // ── NOM CLIENT (colonne configurée ou détection auto)
-      let nomRaw = colMap.nom >= 0 ? (row[colMap.nom] || '').trim() : '';
+      // Nom client — colonne E (index 4) en priorité absolue
+      const nomCol2 = (colMap.nom !== undefined && colMap.nom >= 0) ? colMap.nom : 4;
+      let nomRaw = (row[nomCol2] || '').toString().trim();
       if (!nomRaw) {
-        for (let col = 0; col < Math.min(row.length, 15); col++) {
-          const val = (row[col] || '').trim();
-          if (val && val.length > 1 && val.length < 60 && !/^\d+$/.test(val) && !val.includes('@') && !val.includes('http') && col !== colMap.tel && col !== colMap.wilaya) {
+        for (const col of [3, 5, 2, 6, 1, 7]) {
+          if (col === colMap.tel || col >= row.length) continue;
+          const val = (row[col] || '').toString().trim();
+          if (val && val.length > 1 && val.length < 60 && !/^\d{7,}$/.test(val) && !val.includes('@') && !val.includes('http')) {
             nomRaw = val; break;
           }
         }
