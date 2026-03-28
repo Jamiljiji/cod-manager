@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>COD Manager PRO — Algérie</title>
+<title>JAMIL COD — Algérie</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -13,14 +13,14 @@
   --bg4:      #1c2130;
   --border:   #232838;
   --border2:  #2d3347;
-  --accent:   #00d4ff;
-  --accent2:  #0099bb;
-  --gold:     #f5c842;
-  --green:    #10e98c;
-  --red:      #ff4757;
-  --orange:   #ff8c42;
-  --purple:   #9b72ff;
-  --blue:     #4a9eff;
+  --accent:   #1a6fef;
+  --accent2:  #1558cc;
+  --gold:     #f5a623;
+  --green:    #10b981;
+  --red:      #ef4444;
+  --orange:   #f97316;
+  --purple:   #8b5cf6;
+  --blue:     #3b82f6;
   --text:     #e8edf5;
   --text2:    #7a8499;
   --text3:    #3d4560;
@@ -135,6 +135,10 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .b-assigned{background:rgba(155,114,255,.15);color:var(--purple);}
 .b-confirmed{background:rgba(0,212,255,.15);color:var(--accent);}
 .b-cancelled{background:rgba(255,71,87,.15);color:var(--red);}
+.b-postponed{background:rgba(249,115,22,.15);color:var(--orange);}
+.b-fake{background:rgba(139,92,246,.15);color:var(--purple);}
+.b-attempt1,.b-attempt2,.b-attempt3{background:rgba(245,166,35,.15);color:#f5a623;}
+.b-attempt4,.b-attempt5{background:rgba(255,71,87,.1);color:var(--red);opacity:.8;}
 .b-no-answer{background:rgba(245,200,66,.15);color:var(--gold);}
 /* statuts livraison */
 .b-ready{background:rgba(245,200,66,.15);color:var(--gold);}
@@ -299,8 +303,8 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="logo">
     <div class="logo-mark">C</div>
     <div>
-      <div class="logo-name">COD Manager</div>
-      <div class="logo-ver">PRO · Algérie v3.0</div>
+      <div class="logo-name">JAMIL COD</div>
+      <div class="logo-ver">DZ · v4.0</div>
     </div>
   </div>
   <nav class="nav">
@@ -315,13 +319,13 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="ni" onclick="go('suivi')"><span class="ico">📡</span> Suivi colis</div>
 
     <div class="nav-sec admin-only">Gestion</div>
-    <div class="ni admin-only" onclick="go('agents')"><span class="ico">👥</span> Agents</div>
+    <div class="ni admin-only" onclick="go('agents')"><span class="ico">👥</span> Confirmateurs</div>
     <div class="ni admin-only" onclick="go('produits')"><span class="ico">📦</span> Produits</div>
     <div class="ni admin-only" onclick="go('finances')"><span class="ico">💰</span> Finances</div>
 
     <div class="ni admin-only" onclick="go('clients')"><span class="ico">👥</span> Clients</div>
     <div class="nav-sec admin-only">Config</div>
-    <div class="ni admin-only" onclick="go('transporteurs')"><span class="ico">🏢</span> Transporteurs API</div>
+    <div class="ni admin-only" onclick="go('transporteurs')"><span class="ico">🏢</span> Sociétés de livraison</div>
     <div class="ni admin-only" onclick="go('gsheets')"><span class="ico">📋</span> Google Sheets</div>
     <div class="ni admin-only" onclick="go('parametres')"><span class="ico">⚙️</span> Paramètres</div>
   </nav>
@@ -372,7 +376,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="tw"><table><thead><tr><th>ID</th><th>Client</th><th>Produit</th><th>Montant</th><th>Statut</th></tr></thead><tbody id="dash-recent"></tbody></table></div>
     </div>
     <div class="card">
-      <div class="ch"><span class="ct">Performance agents</span><button class="btn btn-g btn-sm admin-only" onclick="go('agents')">Détails →</button></div>
+      <div class="ch"><span class="ct">Performance confirmateurs</span><button class="btn btn-g btn-sm admin-only" onclick="go('agents')">Détails →</button></div>
       <div class="cb" id="dash-agents" style="padding:14px 18px"></div>
     </div>
   </div>
@@ -422,7 +426,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
     </div>
     <div class="cb">
-      <div class="info-box">💡 Les nouvelles lignes de votre Google Sheet sont importées automatiquement toutes les 2 minutes. Les commandes arrivent avec le statut <strong>NOUVEAU</strong> et sont prêtes à être assignées aux agents confirmatrices.</div>
+      <div class="info-box">💡 Les nouvelles lignes de votre Google Sheet sont importées automatiquement toutes les 2 minutes. Les commandes arrivent avec le statut <strong>NOUVEAU</strong> et sont prêtes à être assignées aux confirmateurs/trices.</div>
       <div class="fr">
         <div class="fg">
           <label class="fl">URL Google Sheet (publique / partagée)</label>
@@ -454,7 +458,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <span class="ct">Nouvelles commandes importées</span>
       <div class="flex fac g8">
         <span class="muted mono" style="font-size:11px" id="import-count">0 commandes</span>
-        <button class="btn btn-warn btn-sm" onclick="assignAll()">⚡ Assigner toutes → agents</button>
+        <button class="btn btn-warn btn-sm" onclick="assignAll()">⚡ Assigner toutes → confirmateurs</button>
       </div>
     </div>
     <div class="tw"><table>
@@ -467,7 +471,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
 <!-- ══════════ PAGE: CONFIRMATION ══════════ -->
 <div class="page" id="pg-confirmation">
   <!-- Vue AGENT : seulement ses commandes assignées -->
-  <div id="agent-view-banner" style="display:none" class="warn-box">👤 Mode agent — Vous voyez uniquement vos commandes assignées.</div>
+  <div id="agent-view-banner" style="display:none" class="warn-box">👤 Mode confirmateur — Vous voyez uniquement vos commandes assignées.</div>
   <div class="sbar">
     <div class="si"><span class="sico">🔍</span><input type="text" id="s-conf" placeholder="Chercher..." oninput="renderConfirmation()"></div>
     <select class="fsel" id="f-conf-statut" onchange="renderConfirmation()">
@@ -553,8 +557,8 @@ tr:hover td{background:rgba(255,255,255,.015);}
 <!-- ══════════ PAGE: AGENTS ══════════ -->
 <div class="page admin-only" id="pg-agents">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-    <span class="muted" style="font-size:13px" id="agents-cnt">0 agents</span>
-    <button class="btn btn-c" onclick="open_modal('m-add-agent')">＋ Ajouter agent</button>
+    <span class="muted" style="font-size:13px" id="agents-cnt">0 confirmateurs</span>
+    <button class="btn btn-c" onclick="open_modal('m-add-agent')">＋ Ajouter confirmateur</button>
   </div>
   <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px"></div>
 </div>
@@ -598,7 +602,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
 <!-- ══════════ PAGE: GOOGLE SHEETS ══════════ -->
 <div class="page admin-only" id="pg-gsheets">
-  <div class="info-box">📋 Configuration du flux Google Sheets → COD Manager. Votre Sheet doit être partagé en lecture publique ou avec le compte de service.</div>
+  <div class="info-box">📋 Configuration du flux Google Sheets → JAMIL COD. Votre Sheet doit être partagé en lecture publique ou avec le compte de service.</div>
   <div class="card">
     <div class="ch"><span class="ct">Mapping des colonnes</span></div>
     <div class="cb">
@@ -717,12 +721,20 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <label class="fl">Résultat appel *</label>
         <select class="fs" id="mc-statut">
           <option value="confirmed">✅ Confirmé — Client OK, envoyer en livraison</option>
+          <option value="attempt1">📞 Tentative 1 — Pas de réponse</option>
+          <option value="attempt2">📞 Tentative 2 — Pas de réponse</option>
+          <option value="attempt3">📞 Tentative 3 — Pas de réponse</option>
+          <option value="attempt4">📞 Tentative 4 — Pas de réponse</option>
+          <option value="attempt5">📞 Tentative 5 — Dernière tentative</option>
           <option value="cancelled">❌ Annulé — Client refuse</option>
-          <option value="no_answer">📵 Pas de réponse</option>
-          <option value="assigned">🔄 Reporter — Rappeler plus tard</option>
+          <option value="postponed">🔄 Reporter — Rappeler plus tard</option>
+          <option value="fake">⛔ Fausse commande — Numéro invalide</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">Note (optionnel)</label><textarea class="fta" id="mc-note" placeholder="Détails de l'appel..."></textarea></div>
+      <div class="fg">
+        <label class="fl">Remarque agent *</label>
+        <textarea class="fta" id="mc-note" placeholder="Ex: Client occupé, rappeler à 18h — ou: Mauvais numéro — ou: Client a changé d'avis..."></textarea>
+      </div>
       <div class="fg"><label class="fl">Adresse confirmée</label><input class="fi" id="mc-adresse" placeholder="Adresse exacte si précisée"></div>
     </div>
     <div class="mf"><button class="btn btn-g" onclick="close_modal('m-confirm')">Annuler</button><button class="btn btn-c" onclick="saveConfirmation()">💾 Sauvegarder</button></div>
@@ -815,7 +827,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
 <script>
 // ═══════════════════════════════════════════════════════════════
 // COD MANAGER PRO — ALGÉRIE
-// ÉTAPES 1→4 : Supabase · Auth · Google Sheets · Transporteurs API
+// ÉTAPES 1→4 : Supabase · Auth · Google Sheets · Sociétés de livraison
 // ═══════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════
@@ -1061,7 +1073,7 @@ function renderLoginPage() {
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">
           <div style="width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#000">C</div>
           <div>
-            <div style="font-size:16px;font-weight:800">COD Manager PRO</div>
+            <div style="font-size:16px;font-weight:800">JAMIL COD</div>
             <div style="font-size:10px;color:var(--text2);font-family:var(--mono)">Algérie · Connectez-vous</div>
           </div>
         </div>
@@ -1246,7 +1258,7 @@ async function logout() {
   location.reload();
 }
 
-// ── Création d'un compte agent (admin only)
+// ── Création d'un compte confirmateur (admin only)
 async function createAgentAccount(agent) {
   if (!supabaseReady) {
     toast('Supabase requis pour créer des comptes auth', 'w');
@@ -1295,7 +1307,7 @@ const WILAYA_ALIASES = {
 
 const CARRIERS = {
   yalidine: { name:'Yalidine', icon:'🚚', color:'#00d4ff', fields:['api_key','api_secret','center_id'] },
-  zr_express: { name:'ZR Express', icon:'⚡', color:'#f5c842', fields:['token','store_id'] },
+  zr_express: { name:'ZR Express', icon:'⚡', color:'#f5c842', fields:['token'] },
   maystro: { name:'Maystro', icon:'📦', color:'#10e98c', fields:['api_key','agency_id','phone'] }
 };
 
@@ -1309,7 +1321,13 @@ const PHASES = [
   {key:'return_transit',icon:'🔄',label:'Retour transit'},
 ];
 
-const CONF_STATUTS = {new:'Nouveau',assigned:'Assigné',confirmed:'Confirmé',cancelled:'Annulé',no_answer:'Pas de rép.'};
+const CONF_STATUTS = {
+  new:'Nouveau', assigned:'Assigné', confirmed:'Confirmé',
+  attempt1:'Tentative 1', attempt2:'Tentative 2', attempt3:'Tentative 3',
+  attempt4:'Tentative 4', attempt5:'Tentative 5',
+  cancelled:'Annulé', postponed:'Reporter', fake:'Fausse commande',
+  no_answer:'Pas de rép.'
+};
 const DELIV_PHASES = {ready:'Prêt à expédier',shipped:'Expédié',out:'Sorti en livraison',delivering:'En livraison',delivered:'Livré',returned:'Retourné',return_transit:'Retour en transit'};
 const AG_COLORS = ['#00d4ff','#10e98c','#f5c842','#9b72ff','#ff8c42','#4a9eff','#ff4757','#2ed573'];
 
@@ -1722,37 +1740,44 @@ function mapYalidineStatus(status) {
 
 // ── ZR EXPRESS API
 async function zrCreateParcel(cmd, cfg) {
+  // ZR Express nouvelle plateforme — authentification par token API uniquement
   const payload = {
-    Telephone: cmd.tel,
-    Prenom: cmd.nom.split(' ')[0] || cmd.nom,
-    Nom: cmd.nom.split(' ').slice(1).join(' ') || '.',
-    Adresse: cmd.adresse || cmd.wilaya,
-    Wilaya: WILAYA_IDS[cmd.wilaya] || 16,
-    Commune: cmd.commune || cmd.wilaya,
-    Produit: cmd.produit || 'Colis',
-    Prix: cmd.montant,
-    Note: cmd.notes || '',
-    TProduit: 'Marchandise',
-    TypeLivraison: cmd.delivType === 'stopdesk' ? 'StopDesk' : 'Domicile',
+    nom: cmd.nom,
+    telephone: cmd.tel,
+    telephone2: '',
+    adresse: cmd.adresse || cmd.commune || cmd.wilaya,
+    wilaya_id: WILAYA_IDS[cmd.wilaya] || 16,
+    commune: cmd.commune || '',
+    produit: cmd.produit || 'Colis',
+    prix: cmd.montant,
+    remarque: cmd.notes || '',
+    type_envoi: cmd.delivType === 'stopdesk' ? 2 : 1,
+    poids: 1,
   };
-  const resp = await fetch('https://procolis.com/api_v2/add_colis', {
+  const resp = await fetch('https://app.zrexpress.dz/api/parcel/create', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'token': cfg.token, 'store_id': cfg.store_id },
-    body: JSON.stringify({ colis: [payload] }),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + cfg.token,
+    },
+    body: JSON.stringify(payload),
   });
-  if (!resp.ok) throw new Error('ZR Express: HTTP ' + resp.status);
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error('ZR Express: ' + (err.message || err.detail || resp.status));
+  }
   const data = await resp.json();
-  const id = data?.colis?.[0]?.code_a_barre || data?.colis?.[0]?.id;
-  return { trackingNum: id || generateTrackingNum('zr_express'), raw: data };
+  const trackNum = data?.tracking || data?.code || data?.id || generateTrackingNum('zr_express');
+  return { trackingNum: trackNum, raw: data };
 }
 
 async function zrGetStatus(trackingNum, cfg) {
-  const resp = await fetch(`https://procolis.com/api_v2/get_colis?code_a_barre=${trackingNum}`, {
-    headers: { 'token': cfg.token, 'store_id': cfg.store_id },
+  const resp = await fetch(`https://app.zrexpress.dz/api/parcel/track/${trackingNum}`, {
+    headers: { 'Authorization': 'Bearer ' + cfg.token },
   });
   if (!resp.ok) return null;
   const data = await resp.json();
-  return mapZRStatus(data?.colis?.[0]?.last_status);
+  return mapZRStatus(data?.status || data?.last_status);
 }
 
 function mapZRStatus(status) {
@@ -1939,7 +1964,7 @@ async function delCmd(id) {
 
 // ── Confirmation workflow
 function getConfCmds() {
-  let cmds = db.commandes.filter(c => ['new', 'assigned', 'confirmed', 'cancelled', 'no_answer'].includes(c.confStatut));
+  let cmds = db.commandes.filter(c => ['new','assigned','confirmed','attempt1','attempt2','attempt3','attempt4','attempt5','cancelled','postponed','fake','no_answer'].includes(c.confStatut));
   if (currentRole === 'agent' && currentAgentId) cmds = cmds.filter(c => c.agentId === currentAgentId);
   return cmds;
 }
@@ -1976,8 +2001,18 @@ async function saveConfirmation() {
   } else if (statut === 'cancelled') {
     toast(`${id} annulé`, 'w');
     addNotif(`❌ ${id} annulé — ${c.nom}`, 'cancel');
+  } else if (statut === 'fake') {
+    toast(`${id} — Fausse commande`, 'w');
+    addNotif(`⛔ ${id} fausse commande — ${c.nom}`, 'cancel');
+  } else if (statut === 'postponed') {
+    toast(`${id} reporté`, 'i');
+    addNotif(`🔄 ${id} reporté — ${c.nom}`, 'assign');
+  } else if (statut.startsWith('attempt')) {
+    const num = statut.replace('attempt','');
+    toast(`Tentative ${num} enregistrée — ${id}`, 'i');
+    addNotif(`📞 ${id} — Tentative ${num} (${c.nom})`, 'attempt');
   } else {
-    toast(`Statut: ${CONF_STATUTS[statut]}`, 'i');
+    toast(`Statut: ${CONF_STATUTS[statut] || statut}`, 'i');
   }
   await upsertCommande(c);
   close_modal('m-confirm'); renderAll();
@@ -2059,16 +2094,16 @@ async function addAgent() {
   // Créer compte auth si Supabase connecté
   if (supabaseReady) await createAgentAccount(agent);
   await upsertAgent(agent);
-  addNotif(`👤 Nouvel agent: ${agent.nom}`, 'agent');
+  addNotif(`👤 Nouveau confirmateur: ${agent.nom}`, 'agent');
   close_modal('m-add-agent'); clearForm('m-add-agent'); renderAll();
-  toast(`Agent ${agent.nom} ajouté !`, 's');
+  toast(`Confirmateur ${agent.nom} ajouté !`, 's');
 }
 
 async function delAgent(id) {
   if (!confirm('Supprimer cet agent ?')) return;
   db.agents = db.agents.filter(a => a.id !== id);
   if (supabaseReady) await sbClient.from('agents').delete().eq('id', id);
-  saveDB(); renderAgents(); toast('Agent supprimé', 'i');
+  saveDB(); renderAgents(); toast('Confirmateur supprimé', 'i');
 }
 
 // ══════════════════════════════════════════
@@ -2149,7 +2184,7 @@ function openCarrierConfig(key) {
   document.getElementById('m-carrier-title').textContent = `🔑 ${c.icon} ${c.name} — Configuration API`;
   const instructionMap = {
     yalidine: 'Obtenez vos credentials sur <strong>app.yalidine.dz</strong> → Paramètres → API',
-    zr_express: 'Obtenez votre token sur <strong>procolis.com</strong> → Mon compte → API',
+    zr_express: 'Obtenez votre token API sur <strong>app.zrexpress.dz</strong> → Mon compte → API Key',
     maystro: 'Obtenez votre API key sur <strong>maystro-delivery.com</strong> → Dashboard → API',
   };
   document.getElementById('m-carrier-body').innerHTML = `
@@ -2250,10 +2285,10 @@ const PAGE_META = {
   confirmation: ['Confirmation', 'File d\'appel confirmatrices'],
   livraison: ['Livraison', 'Suivi phases de livraison'],
   suivi: ['Suivi colis', 'Tracker par ID ou numéro'],
-  agents: ['Agents', 'Gestion équipe'],
+  agents: ['Confirmateurs', 'Équipe confirmation'],
   produits: ['Produits', 'Catalogue & analytiques'],
   finances: ['Finances', 'Trésorerie & commissions'],
-  transporteurs: ['Transporteurs API', 'Yalidine · ZR Express · Maystro'],
+  transporteurs: ['Sociétés de livraison', 'Yalidine · ZR Express · Maystro'],
   gsheets: ['Google Sheets', 'Configuration import automatique'],
   parametres: ['Paramètres', 'Configuration boutique'],
   notifications: ['Notifications', 'Activité système'],
@@ -2332,7 +2367,7 @@ function renderDashboard() {
       <div style="flex:1"><div style="font-size:12px;font-weight:600">${a.nom}</div><div class="pbar" style="margin-top:3px"><div class="pfill" style="width:${rate}%;background:${a.color}"></div></div></div>
       <span class="mono" style="font-size:11px;color:${a.color}">${rate}%</span>
     </div>`;
-  }).join('') || '<div class="empty"><div class="empty-txt">Aucun agent</div></div>';
+  }).join('') || '<div class="empty"><div class="empty-txt">Aucun confirmateur</div></div>';
 
   const wMap = {}; db.commandes.forEach(c => { if (c.wilaya) wMap[c.wilaya] = (wMap[c.wilaya] || 0) + 1; });
   const topW = Object.entries(wMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
@@ -2475,8 +2510,8 @@ function renderSuivi() {
 
 function renderAgents() {
   const grid = document.getElementById('agents-grid');
-  document.getElementById('agents-cnt').textContent = db.agents.length + ' agents';
-  if (!db.agents.length) { grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-ico">👥</div><div class="empty-txt">Aucun agent</div></div>`; return; }
+  document.getElementById('agents-cnt').textContent = db.agents.length + ' confirmateurs';
+  if (!db.agents.length) { grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-ico">👥</div><div class="empty-txt">Aucun confirmateur</div></div>`; return; }
   grid.innerHTML = db.agents.map(a => {
     const cmds = db.commandes.filter(c => c.agentId === a.id);
     const conf = cmds.filter(c => c.confStatut === 'confirmed' || c.delivPhase).length;
@@ -2540,7 +2575,7 @@ function renderFinances() {
     const codA = d.reduce((s, c) => s + c.montant, 0);
     const commA = d.reduce((s, c) => s + c.montant * a.commission / 100, 0);
     return `<tr><td><span style="color:${a.color}">${a.nom}</span></td><td class="mono">${d.length}</td><td class="mono green">${codA.toLocaleString()} DZD</td><td class="mono accent">${a.commission}%</td><td class="mono gold">${Math.round(commA).toLocaleString()} DZD</td></tr>`;
-  }).join('') || `<tr><td colspan="5" class="empty"><div class="empty-txt">Aucun agent</div></td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty"><div class="empty-txt">Aucun confirmateur</div></td></tr>`;
   const cDiv = document.getElementById('fin-carriers');
   cDiv.innerHTML = Object.entries(CARRIERS).map(([k, c]) => {
     const cmds = db.commandes.filter(x => x.carrier === k);
@@ -2591,7 +2626,7 @@ function renderAnalytics() {
     return `<div class="card"><div class="ch" style="border-color:${a.color}20"><span style="color:${a.color};font-weight:700">${a.nom}</span></div>
     <div class="cb"><div class="kpi-row"><div class="kpi"><div class="kpi-v">${cmds.length}</div><div class="kpi-l">Total</div></div><div class="kpi"><div class="kpi-v green">${cmds.length ? Math.round(conf / cmds.length * 100) : 0}%</div><div class="kpi-l">Conf.</div></div><div class="kpi"><div class="kpi-v" style="color:var(--blue)">${conf ? Math.round(del / conf * 100) : 0}%</div><div class="kpi-l">Livr.</div></div><div class="kpi"><div class="kpi-v red">${del + ret ? Math.round(ret / (del + ret) * 100) : 0}%</div><div class="kpi-l">Retour</div></div></div>
     <div class="muted" style="font-size:11px">CA: <span class="green mono">${ca.toLocaleString()} DZD</span></div></div></div>`;
-  }).join('') || '<div class="empty" style="grid-column:1/-1"><div class="empty-txt">Aucun agent</div></div>'}</div>`;
+  }).join('') || '<div class="empty" style="grid-column:1/-1"><div class="empty-txt">Aucun confirmateur</div></div>'}</div>`;
   document.getElementById('produits-analytics').innerHTML = `<div class="card"><div class="tw"><table><thead><tr><th>Produit</th><th>Total</th><th>Conf %</th><th>Livr %</th><th>Retour %</th><th>CA DZD</th></tr></thead><tbody>${ps.map(p => `<tr><td><strong>${p.nom}</strong></td><td class="mono">${p.total}</td><td class="mono accent">${p.confRate}%</td><td class="mono green">${p.delivRate}%</td><td class="mono red">${p.retRate}%</td><td class="mono green">${p.ca.toLocaleString()}</td></tr>`).join('') || `<tr><td colspan="6"><div class="empty"><div class="empty-txt">Aucune donnée</div></div></td></tr>`}</tbody></table></div></div>`;
   document.getElementById('wilayas-analytics').innerHTML = (() => {
     const wMap = {};
@@ -2823,7 +2858,7 @@ function switchRole() {
     document.getElementById('app').classList.add('role-agent');
     document.getElementById('agent-view-banner').style.display = 'block';
     updateUserUI(); renderAll();
-    toast('Mode agent: ' + ag.nom, 'i');
+    toast('Mode confirmateur: ' + ag.nom, 'i');
     go('confirmation');
   } else {
     currentRole = 'admin'; currentAgentId = null;
@@ -2851,7 +2886,7 @@ function printDeliveryLabel(id) {
   // En-tête boutique
   doc.setFillColor(14, 17, 24); doc.rect(0, 0, 100, 22, 'F');
   doc.setTextColor(0, 212, 255); doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-  doc.text(db.params.shopName || 'COD Manager PRO', 50, 10, { align: 'center' });
+  doc.text(db.params.shopName || 'JAMIL COD', 50, 10, { align: 'center' });
   doc.setFontSize(8); doc.setTextColor(120, 132, 153);
   doc.text(carrier ? carrier.name + ' · ' + (cmd.delivType === 'stopdesk' ? 'Stop Desk' : 'À domicile') : 'Livraison COD', 50, 17, { align: 'center' });
 
@@ -3141,7 +3176,7 @@ async function triggerNotifications(event, data) {
     case 'cmd_assigned':
       // SMS à l'agent quand une commande lui est assignée
       if (agent?.tel) {
-        const msg = `COD Manager: Nouvelle commande à confirmer ${data.cmdId} — ${data.nom} — ${data.wilaya} — ${data.montant?.toLocaleString()} DZD. Connectez-vous pour traiter.`;
+        const msg = `JAMIL COD: Nouvelle commande à confirmer ${data.cmdId} — ${data.nom} — ${data.wilaya} — ${data.montant?.toLocaleString()} DZD. Connectez-vous pour traiter.`;
         await sendSMS(agent.tel, msg);
       }
       // Notification in-app
@@ -3155,7 +3190,7 @@ async function triggerNotifications(event, data) {
       addNotif(`✅ ${data.cmdId} confirmé par ${agent?.nom || 'agent'} — Envoi auto transporteur`, 'confirm');
       // SMS au gérant si configuré
       if (db.params.gerantTel) {
-        await sendSMS(db.params.gerantTel, `COD Manager: ${data.cmdId} confirmé (${data.nom} · ${data.montant?.toLocaleString()} DZD). Envoi en cours.`);
+        await sendSMS(db.params.gerantTel, `JAMIL COD: ${data.cmdId} confirmé (${data.nom} · ${data.montant?.toLocaleString()} DZD). Envoi en cours.`);
       }
       break;
 
@@ -3168,7 +3203,7 @@ async function triggerNotifications(event, data) {
     case 'cmd_returned':
       addNotif(`↩️ ${data.cmdId} RETOURNÉ — ${data.nom} — ${data.wilaya}`, 'returned');
       if (db.params.gerantTel) {
-        await sendSMS(db.params.gerantTel, `COD Manager: RETOUR ${data.cmdId} — ${data.nom} (${data.wilaya}).`);
+        await sendSMS(db.params.gerantTel, `JAMIL COD: RETOUR ${data.cmdId} — ${data.nom} (${data.wilaya}).`);
       }
       break;
 
@@ -3206,7 +3241,7 @@ async function sendDailySummary() {
   const confirmed = todayCmds.filter(c => c.confStatut === 'confirmed' || c.delivPhase).length;
   const delivered = db.commandes.filter(c => c.deliveredAt && new Date(c.deliveredAt).toDateString() === today).length;
   const ca = db.commandes.filter(c => c.deliveredAt && new Date(c.deliveredAt).toDateString() === today).reduce((s, c) => s + c.montant, 0);
-  const msg = `COD Manager — Résumé du ${new Date().toLocaleDateString('fr-DZ')}: ${todayCmds.length} nouvelles, ${confirmed} confirmées, ${delivered} livrées. CA: ${ca.toLocaleString()} DZD.`;
+  const msg = `JAMIL COD — Résumé du ${new Date().toLocaleDateString('fr-DZ')}: ${todayCmds.length} nouvelles, ${confirmed} confirmées, ${delivered} livrées. CA: ${ca.toLocaleString()} DZD.`;
   if (db.params.gerantTel) await sendSMS(db.params.gerantTel, msg);
   addNotif(`📊 Résumé journalier envoyé: ${delivered} livrées, ${ca.toLocaleString()} DZD`, 'summary');
 }
@@ -3279,7 +3314,7 @@ function printDeliveryLabelV2(id) {
   if (!jsPDF) { toast('jsPDF non disponible', 'e'); return; }
 
   const carrier = cmd.carrier ? CARRIERS[cmd.carrier] : null;
-  const shopName = db.params.shopName || 'COD Manager PRO';
+  const shopName = db.params.shopName || 'JAMIL COD';
   const doc = new jsPDF({ unit: 'mm', format: [100, 150], orientation: 'portrait' });
   const W = 100, H = 150;
 
@@ -3400,7 +3435,7 @@ function printDeliveryLabelV2(id) {
   doc.setTextColor(61, 69, 96);
   doc.setFontSize(6);
   doc.setFont('helvetica', 'normal');
-  doc.text('COD Manager PRO · Algérie', 50, H - 5, { align: 'center' });
+  doc.text('JAMIL COD · Algérie', 50, H - 5, { align: 'center' });
 
   doc.save('bon-livraison-' + cmd.id + '.pdf');
   toast('✅ Bon généré: ' + cmd.id, 's');
@@ -3417,7 +3452,7 @@ function printBatchA4(ids) {
   const pgW = 210, pgH = 297;
   const bW = 95, bH = 138; // taille d'un bon en A4
   const positions = [{ x: 5, y: 5 }, { x: 110, y: 5 }, { x: 5, y: 152 }, { x: 110, y: 152 }];
-  const shopName = db.params.shopName || 'COD Manager PRO';
+  const shopName = db.params.shopName || 'JAMIL COD';
 
   cmds.forEach((cmd, idx) => {
     if (idx > 0 && idx % 4 === 0) doc.addPage();
@@ -3739,7 +3774,7 @@ function saveSMSConfigFull() {
 async function testSMS() {
   const tel = document.getElementById('gerant-tel')?.value?.trim() || db.params.gerantTel;
   if (!tel) { toast('Entrez un numéro de téléphone gérant', 'w'); return; }
-  await sendSMS(tel, 'COD Manager PRO: Test SMS — ' + new Date().toLocaleTimeString('fr-DZ'));
+  await sendSMS(tel, 'JAMIL COD: Test SMS — ' + new Date().toLocaleTimeString('fr-DZ'));
   toast('SMS test envoyé', 's');
 }
 
@@ -3836,11 +3871,11 @@ const TRANSLATIONS = {
     nav_confirmation: 'Confirmation',
     nav_livraison: 'Livraison',
     nav_suivi: 'Suivi colis',
-    nav_agents: 'Agents',
+    nav_agents: 'Confirmateurs',
     nav_produits: 'Produits',
     nav_finances: 'Finances',
     nav_clients: 'Clients',
-    nav_transporteurs: 'Transporteurs API',
+    nav_transporteurs: 'Sociétés de livraison',
     nav_gsheets: 'Google Sheets',
     nav_parametres: 'Paramètres',
     // Page titles
@@ -3856,13 +3891,13 @@ const TRANSLATIONS = {
     page_livraison_sub: 'Suivi phases de livraison',
     page_suivi: 'Suivi colis',
     page_suivi_sub: 'Tracker par ID ou numéro',
-    page_agents: 'Agents',
-    page_agents_sub: 'Gestion équipe',
+    page_agents: 'Confirmateurs',
+    page_agents_sub: 'Équipe confirmation',
     page_produits: 'Produits',
     page_produits_sub: 'Catalogue & analytiques',
     page_finances: 'Finances',
     page_finances_sub: 'Trésorerie & commissions',
-    page_transporteurs: 'Transporteurs API',
+    page_transporteurs: 'Sociétés de livraison',
     page_transporteurs_sub: 'Yalidine · ZR Express · Maystro',
     page_gsheets: 'Google Sheets',
     page_gsheets_sub: 'Configuration import automatique',
@@ -3885,10 +3920,10 @@ const TRANSLATIONS = {
     // Buttons
     btn_new_cmd: '＋ Commande',
     btn_sync: '🔄 Synchroniser maintenant',
-    btn_assign_all: '⚡ Assigner toutes → agents',
+    btn_assign_all: '⚡ Assigner toutes → confirmateurs',
     btn_send_carrier: '🚀 Envoyer confirmées → Transporteur',
     btn_refresh_track: '🔄 Actualiser tracking',
-    btn_add_agent: '＋ Ajouter agent',
+    btn_add_agent: '＋ Ajouter confirmateur',
     btn_add_produit: '＋ Ajouter produit',
     btn_save: '💾 Sauvegarder',
     btn_cancel: 'Annuler',
@@ -3956,7 +3991,7 @@ const TRANSLATIONS = {
     lbl_api_key: 'API Key',
     // Empty states
     empty_orders: 'Aucune commande trouvée',
-    empty_agents: 'Aucun agent',
+    empty_agents: 'Aucun confirmateur',
     empty_products: 'Aucun produit',
     empty_notifs: 'Aucune notification',
     empty_imports: 'Aucun import en attente — synchronisez votre Google Sheet',
@@ -3971,7 +4006,7 @@ const TRANSLATIONS = {
     // Roles
     role_admin: 'Administrateur',
     role_gerant: 'Gérant',
-    role_agent: 'Confirmatrice',
+    role_agent: 'Confirmateur/trice',
     // Pipeline
     pipeline_confirmation: 'Confirmation',
     // Misc
@@ -3984,9 +4019,9 @@ const TRANSLATIONS = {
     connected: 'Connecté',
     not_connected: 'Non connecté',
     not_assigned: 'Non assigné',
-    logo_sub: 'PRO · Algérie v3.0',
+    logo_sub: 'DZ · v4.0',
     top_wilayas: 'Top Wilayas',
-    agent_perf: 'Performance agents',
+    agent_perf: 'Performance confirmateurs',
     top_products: 'Top produits',
     carrier_status: 'Statut transporteurs',
     recent_orders: 'Dernières commandes',
@@ -4008,7 +4043,7 @@ const TRANSLATIONS = {
     nav_confirmation: 'التأكيد',
     nav_livraison: 'التوصيل',
     nav_suivi: 'تتبع الطرود',
-    nav_agents: 'الوكلاء',
+    nav_agents: 'المؤكدون',
     nav_produits: 'المنتجات',
     nav_finances: 'المالية',
     nav_clients: 'العملاء',
@@ -4028,7 +4063,7 @@ const TRANSLATIONS = {
     page_suivi: 'تتبع الطرود',
     page_suivi_sub: 'تتبع برقم الطلب',
     page_agents: 'الوكلاء',
-    page_agents_sub: 'إدارة الفريق',
+    page_agents_sub: 'فريق التأكيد',
     page_produits: 'المنتجات',
     page_produits_sub: 'الكتالوج والإحصائيات',
     page_finances: 'المالية',
@@ -4057,7 +4092,7 @@ const TRANSLATIONS = {
     btn_assign_all: '⚡ تكليف الكل للوكلاء',
     btn_send_carrier: '🚀 إرسال المؤكدة → شركة التوصيل',
     btn_refresh_track: '🔄 تحديث التتبع',
-    btn_add_agent: '＋ إضافة وكيل',
+    btn_add_agent: '＋ إضافة مؤكد',
     btn_add_produit: '＋ إضافة منتج',
     btn_save: '💾 حفظ',
     btn_cancel: 'إلغاء',
@@ -4134,7 +4169,7 @@ const TRANSLATIONS = {
     login_error_wrong: 'البريد أو كلمة المرور غير صحيحة',
     role_admin: 'مدير',
     role_gerant: 'مسير',
-    role_agent: 'مؤكد',
+    role_agent: 'مؤكد/مؤكدة',
     pipeline_confirmation: 'التأكيد',
     all_statuts: 'جميع الحالات',
     all_carriers: 'جميع الناقلين',
@@ -4145,7 +4180,7 @@ const TRANSLATIONS = {
     connected: 'متصل',
     not_connected: 'غير متصل',
     not_assigned: 'غير مُكلَّف',
-    logo_sub: 'PRO · الجزائر v3.0',
+    logo_sub: 'DZ · v4.0',
     top_wilayas: 'أهم الولايات',
     agent_perf: 'أداء الوكلاء',
     top_products: 'أهم المنتجات',
@@ -4169,11 +4204,11 @@ const TRANSLATIONS = {
     nav_confirmation: 'Confirmation',
     nav_livraison: 'Delivery',
     nav_suivi: 'Parcel Tracking',
-    nav_agents: 'Agents',
+    nav_agents: 'Confirmateurs',
     nav_produits: 'Products',
     nav_finances: 'Finances',
     nav_clients: 'Clients',
-    nav_transporteurs: 'Carrier APIs',
+    nav_transporteurs: 'Delivery Companies',
     nav_gsheets: 'Google Sheets',
     nav_parametres: 'Settings',
     page_dashboard: 'Dashboard',
@@ -4188,8 +4223,8 @@ const TRANSLATIONS = {
     page_livraison_sub: 'Delivery phase tracking',
     page_suivi: 'Parcel Tracking',
     page_suivi_sub: 'Track by ID or number',
-    page_agents: 'Agents',
-    page_agents_sub: 'Team management',
+    page_agents: 'Confirmateurs',
+    page_agents_sub: 'Confirmation team',
     page_produits: 'Products',
     page_produits_sub: 'Catalog & analytics',
     page_finances: 'Finances',
@@ -4218,7 +4253,7 @@ const TRANSLATIONS = {
     btn_assign_all: '⚡ Assign All → Agents',
     btn_send_carrier: '🚀 Send Confirmed → Carrier',
     btn_refresh_track: '🔄 Refresh Tracking',
-    btn_add_agent: '＋ Add Agent',
+    btn_add_agent: '＋ Add Confirmer',
     btn_add_produit: '＋ Add Product',
     btn_save: '💾 Save',
     btn_cancel: 'Cancel',
@@ -4306,7 +4341,7 @@ const TRANSLATIONS = {
     connected: 'Connected',
     not_connected: 'Not connected',
     not_assigned: 'Not assigned',
-    logo_sub: 'PRO · Algeria v3.0',
+    logo_sub: 'DZ · v4.0',
     top_wilayas: 'Top Wilayas',
     agent_perf: 'Agent Performance',
     top_products: 'Top Products',
@@ -4477,7 +4512,7 @@ initI18n();
 // + Configuration Google Sheet automatique
 // ════════════════════════════════════════════════════════════
 
-// ── Créer un compte agent ou gérant depuis l'app
+// ── Créer un compte confirmateur ou gérant depuis l'app
 async function createUserAccount(nom, email, password, role, agentId) {
   if (!supabaseReady || !sbClient) {
     toast("Supabase requis pour créer des comptes", 'w');
@@ -4689,7 +4724,7 @@ function injectAccountButtons() {
   btnsDiv.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;';
   btnsDiv.innerHTML = `
     <button class="btn btn-c" onclick="openCreateAccountModal('agent')">
-      👤 Créer compte confirmatrice
+      👤 Créer compte confirmateur/trice
     </button>
     <button class="btn btn-g" onclick="openCreateAccountModal('gerant')">
       🏢 Créer compte gérant
@@ -4750,7 +4785,7 @@ function injectImportInfo() {
   infoBox.innerHTML = `
     💡 Votre Google Sheet est <strong>configuré et actif</strong>.<br>
     📊 Colonnes: <strong>E=Nom client</strong> · <strong>F=Téléphone</strong> · <strong>G=Wilaya</strong> · <strong>H=Produit</strong><br>
-    💰 Prix fixe: <strong>${(db.gsheets.fixedPrice || 7500).toLocaleString()} DZD</strong> + frais livraison par wilaya<br>
+    💰 Prix fixe: <strong>${(db.gsheets.fixedPrice || 7500).toLocaleString()} DZD</strong> + frais transporteur par wilaya<br>
     🔄 Synchronisation automatique toutes les <strong>${db.gsheets.interval || 2} minutes</strong>`;
 }
 
@@ -4762,6 +4797,462 @@ setTimeout(() => {
   // Auto-sync après 2 secondes (laisser le temps à l'auth)
   setTimeout(autoSyncOnBoot, 2000);
 }, 1000);
+
+
+// ═══ JAMIL COD — Thème · Animations 3D · Rôles · Auto-assign ═══
+// ════════════════════════════════════════════════════════════
+// JAMIL COD — EXTENSIONS COMPLÈTES
+// Thème clair/sombre · Gestion rôles · Auto-assign · Animations 3D
+// ════════════════════════════════════════════════════════════
+
+// ══════════════════════════════
+// THÈME CLAIR / SOMBRE
+// ══════════════════════════════
+const THEMES = {
+  dark: {
+    '--bg': '#080a0f', '--bg2': '#0e1118', '--bg3': '#151923', '--bg4': '#1c2130',
+    '--border': '#232838', '--border2': '#2d3347',
+    '--accent': '#1a6fef', '--accent2': '#1558cc',
+    '--text': '#e8edf5', '--text2': '#7a8499', '--text3': '#3d4560',
+    '--shadow': '0 8px 32px rgba(0,0,0,.5)',
+    '--card-bg': '#0e1118',
+  },
+  light: {
+    '--bg': '#f0f4f8', '--bg2': '#ffffff', '--bg3': '#f8fafc', '--bg4': '#e8f0fe',
+    '--border': '#e2e8f0', '--border2': '#cbd5e1',
+    '--accent': '#1a6fef', '--accent2': '#1558cc',
+    '--text': '#0f172a', '--text2': '#475569', '--text3': '#94a3b8',
+    '--shadow': '0 4px 16px rgba(0,0,0,.08)',
+    '--card-bg': '#ffffff',
+  }
+};
+
+let currentTheme = localStorage.getItem('jamil-theme') || 'dark';
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  localStorage.setItem('jamil-theme', theme);
+  const root = document.documentElement;
+  const vars = THEMES[theme];
+  Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+
+  // Fix table td border color for light mode
+  if (theme === 'light') {
+    injectLightStyles();
+  } else {
+    removeLightStyles();
+  }
+
+  // Update theme button
+  document.querySelectorAll('.theme-btn').forEach(b => {
+    b.textContent = theme === 'dark' ? '☀️' : '🌙';
+    b.title = theme === 'dark' ? 'Mode clair' : 'Mode sombre';
+  });
+}
+
+function injectLightStyles() {
+  let s = document.getElementById('light-override');
+  if (!s) { s = document.createElement('style'); s.id = 'light-override'; document.head.appendChild(s); }
+  s.textContent = `
+    td { border-bottom-color: rgba(0,0,0,.06) !important; }
+    tr:hover td { background: rgba(0,0,0,.02) !important; }
+    .sidebar { box-shadow: 2px 0 8px rgba(0,0,0,.08); }
+    .topbar { box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .mo > .md { box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+    .ni:hover { background: rgba(26,111,239,.06) !important; }
+    .ni.on { background: rgba(26,111,239,.1) !important; }
+    input, select, textarea { color: #0f172a !important; }
+    .badge::before { opacity: 1; }
+    .sc { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .card { box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+  `;
+}
+
+function removeLightStyles() {
+  document.getElementById('light-override')?.remove();
+}
+
+function toggleTheme() {
+  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+}
+
+function injectThemeButton() {
+  const tbRight = document.querySelector('.tb-right');
+  if (!tbRight || document.getElementById('theme-toggle')) return;
+  const btn = document.createElement('button');
+  btn.id = 'theme-toggle';
+  btn.className = 'tb-btn theme-btn';
+  btn.onclick = toggleTheme;
+  btn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+  btn.title = currentTheme === 'dark' ? 'Mode clair' : 'Mode sombre';
+  btn.style.cssText = 'font-size:16px;cursor:pointer;';
+  tbRight.insertBefore(btn, tbRight.firstChild);
+}
+
+// ══════════════════════════════
+// GESTION DES RÔLES AVANCÉE
+// Gérant peut ajouter agents + assigner
+// ══════════════════════════════
+
+// Patch: gérant a les mêmes droits que admin sur agents
+function canManageAgents() {
+  return currentRole === 'admin' || currentRole === 'gerant';
+}
+
+// Auto-assign équitable (round-robin par wilaya ou global)
+async function autoAssignFair(mode = 'equal') {
+  const unassigned = db.commandes.filter(c => c.confStatut === 'new');
+  if (!unassigned.length) { toast('Aucune commande à assigner', 'i'); return; }
+  if (!db.agents.length) { toast('Ajoutez des agents d\'abord', 'w'); return; }
+
+  // Compter commandes actuelles par agent
+  const agentLoad = {};
+  db.agents.forEach(a => {
+    agentLoad[a.id] = db.commandes.filter(c => c.agentId === a.id && ['new','assigned','attempt1','attempt2','attempt3'].includes(c.confStatut)).length;
+  });
+
+  let assigned = 0;
+  for (const cmd of unassigned) {
+    let agentId;
+    if (mode === 'equal') {
+      // Choisir l'agent avec le moins de commandes
+      agentId = db.agents.reduce((min, a) => (agentLoad[a.id] < agentLoad[min]) ? a.id : min, db.agents[0].id);
+    } else if (mode === 'wilaya') {
+      // Assigner selon la zone de l'agent
+      const zoneAgent = db.agents.find(a => a.zone && cmd.wilaya && cmd.wilaya.toLowerCase().includes(a.zone.toLowerCase()));
+      agentId = zoneAgent?.id || db.agents[assigned % db.agents.length].id;
+    } else {
+      agentId = db.agents[assigned % db.agents.length].id;
+    }
+    cmd.agentId = agentId;
+    cmd.confStatut = 'assigned';
+    cmd.updatedAt = new Date().toISOString();
+    agentLoad[agentId] = (agentLoad[agentId] || 0) + 1;
+    await upsertCommande(cmd);
+    assigned++;
+  }
+
+  saveDB(); renderAll();
+  toast(`${assigned} commandes assignées équitablement`, 's');
+  addNotif(`⚡ Auto-assign: ${assigned} commandes réparties entre ${db.agents.length} agents`, 'auto');
+}
+
+// ── Modal auto-assign avec options
+function openAutoAssignModal() {
+  const existing = document.getElementById('m-auto-assign');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.className = 'mo open';
+  modal.id = 'm-auto-assign';
+  const unassigned = db.commandes.filter(c => c.confStatut === 'new').length;
+  modal.innerHTML = `
+    <div class="md" style="width:420px">
+      <div class="mh"><span class="mt">⚡ Auto-assigner les commandes</span><button class="mx" onclick="document.getElementById('m-auto-assign').remove()">✕</button></div>
+      <div class="mb_">
+        <div class="info-box">${unassigned} commandes nouvelles à assigner entre ${db.agents.length} agents.</div>
+        <div class="fg">
+          <label class="fl">Mode de répartition</label>
+          <select class="fs" id="assign-mode">
+            <option value="equal">⚖️ Équitable — même nombre par agent</option>
+            <option value="wilaya">🗺️ Par wilaya — selon zone agent</option>
+            <option value="round">🔄 Tour à tour — ordre séquentiel</option>
+          </select>
+        </div>
+        <div style="margin-top:12px">
+          ${db.agents.map(a => {
+            const load = db.commandes.filter(c => c.agentId === a.id && ['assigned','attempt1','attempt2','attempt3'].includes(c.confStatut)).length;
+            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+              <div style="width:28px;height:28px;border-radius:50%;background:${a.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#000">${a.nom[0]}</div>
+              <div style="flex:1"><div style="font-size:12px;font-weight:600">${a.nom}</div><div class="muted" style="font-size:10px">${a.zone || 'Toutes zones'}</div></div>
+              <div class="mono" style="font-size:11px;color:var(--accent)">${load} en cours</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-g" onclick="document.getElementById('m-auto-assign').remove()">Annuler</button>
+        <button class="btn btn-c" onclick="autoAssignFair(document.getElementById('assign-mode').value);document.getElementById('m-auto-assign').remove()">⚡ Assigner maintenant</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+}
+
+// ── Override assignAll button to use new modal
+window.assignAll = function() { openAutoAssignModal(); };
+
+// ══════════════════════════════
+// ANIMATIONS 3D DASHBOARD
+// ══════════════════════════════
+function inject3DAnimations() {
+  const style = document.createElement('style');
+  style.id = 'jamil-3d-animations';
+  style.textContent = `
+    /* Stat cards 3D hover */
+    .sc {
+      transform-style: preserve-3d;
+      transition: transform .3s ease, box-shadow .3s ease, border-color .2s;
+    }
+    .sc:hover {
+      transform: translateY(-4px) rotateX(3deg);
+      box-shadow: 0 12px 32px rgba(26,111,239,.15);
+    }
+
+    /* Sidebar nav items slide */
+    .ni {
+      transition: all .2s cubic-bezier(.4,0,.2,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .ni::after {
+      content: '';
+      position: absolute;
+      left: -100%;
+      top: 0; bottom: 0;
+      width: 100%;
+      background: linear-gradient(90deg, transparent, rgba(26,111,239,.08), transparent);
+      transition: left .4s ease;
+    }
+    .ni:hover::after { left: 100%; }
+
+    /* Page fade-in animation */
+    .page.on {
+      animation: pageIn .25s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Pulse badge */
+    .nbadge {
+      animation: pulseBadge 2s ease-in-out infinite;
+    }
+    @keyframes pulseBadge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    /* Button press effect */
+    .btn { transition: all .15s cubic-bezier(.4,0,.2,1); }
+    .btn:active { transform: scale(.97) !important; }
+
+    /* Card hover lift */
+    .card {
+      transition: box-shadow .2s ease, transform .2s ease;
+    }
+    .card:hover {
+      box-shadow: 0 8px 24px rgba(26,111,239,.08);
+    }
+
+    /* Logo 3D spin on hover */
+    .logo-mark {
+      transition: transform .4s cubic-bezier(.4,0,.2,1);
+    }
+    .logo:hover .logo-mark {
+      transform: rotateY(180deg);
+    }
+
+    /* Table row slide */
+    tbody tr {
+      transition: background .15s ease, transform .15s ease;
+    }
+    tbody tr:hover {
+      transform: translateX(2px);
+    }
+
+    /* Modal pop */
+    .md {
+      animation: modalPop .25s cubic-bezier(.34,1.56,.64,1) !important;
+    }
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(.92) translateY(16px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Pipeline phase hover */
+    .ph {
+      transition: all .2s cubic-bezier(.4,0,.2,1);
+    }
+    .ph:hover {
+      transform: translateY(-3px);
+      background: rgba(26,111,239,.08);
+      border-radius: 8px;
+    }
+
+    /* Live dot pulse glow */
+    .live-dot {
+      animation: livePulse 1.5s ease-in-out infinite !important;
+    }
+    @keyframes livePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(26,111,239,.4); }
+      50% { box-shadow: 0 0 0 6px rgba(26,111,239,0); }
+    }
+
+    /* Topbar gradient border */
+    .topbar {
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .topbar::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: .3;
+    }
+
+    /* Number counter animation */
+    .sc-val {
+      transition: color .3s ease;
+    }
+
+    /* Sidebar logo gradient animation */
+    .logo-mark {
+      background: linear-gradient(135deg, var(--accent), var(--purple)) !important;
+      animation: logoGlow 3s ease-in-out infinite alternate;
+    }
+    @keyframes logoGlow {
+      from { filter: brightness(1); }
+      to { filter: brightness(1.2) drop-shadow(0 0 8px rgba(26,111,239,.4)); }
+    }
+
+    /* Toast slide with bounce */
+    .toast {
+      animation: toastBounce .35s cubic-bezier(.34,1.56,.64,1) !important;
+    }
+    @keyframes toastBounce {
+      from { opacity: 0; transform: translateX(30px) scale(.8); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    /* Input focus glow */
+    .fi:focus, .fs:focus, .fta:focus {
+      box-shadow: 0 0 0 3px rgba(26,111,239,.15) !important;
+      transform: translateY(-1px);
+      transition: all .2s ease;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// ══════════════════════════════
+// LOGO JAMIL COD AMÉLIORÉ
+// ══════════════════════════════
+function updateLogo() {
+  const logoMark = document.querySelector('.logo-mark');
+  if (logoMark) {
+    logoMark.textContent = 'J';
+    logoMark.style.cssText = `
+      width:38px; height:38px;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 18px; color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(26,111,239,.3);
+    `;
+  }
+  const logoName = document.querySelector('.logo-name');
+  if (logoName) logoName.textContent = 'JAMIL COD';
+  const logoVer = document.querySelector('.logo-ver');
+  if (logoVer) logoVer.textContent = 'Algérie · v4.0';
+}
+
+// ══════════════════════════════
+// REMARQUE VISIBLE DANS LES TABLES
+// ══════════════════════════════
+// Show agent remarks in confirmation table
+const _origRenderConf = window.renderConfirmation || renderConfirmation;
+window.renderConfirmation = function() {
+  _origRenderConf();
+  // Add remarks column to table if not there
+  const thead = document.querySelector('#table-conf')?.closest('table')?.querySelector('thead tr');
+  if (thead && !thead.querySelector('.remark-th')) {
+    const th = document.createElement('th');
+    th.className = 'remark-th';
+    th.textContent = 'Remarque';
+    thead.insertBefore(th, thead.lastElementChild);
+  }
+  // Add remark to each row
+  document.querySelectorAll('#table-conf tr').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 10) return;
+    if (row.querySelector('.remark-cell')) return;
+    const cmdId = row.querySelector('.mono.accent')?.textContent;
+    const cmd = db.commandes.find(c => c.id === cmdId);
+    const lastRemark = cmd?.confNotes?.slice(-1)[0]?.note || '—';
+    const td = document.createElement('td');
+    td.className = 'remark-cell';
+    td.style.cssText = 'font-size:11px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    td.title = lastRemark;
+    td.textContent = lastRemark.length > 30 ? lastRemark.slice(0,30)+'…' : lastRemark;
+    row.insertBefore(td, row.lastElementChild);
+  });
+};
+
+// ══════════════════════════════
+// GÉRANT PEUT GÉRER LES AGENTS
+// ══════════════════════════════
+const _origApplyRole = window.applyRole || applyRole;
+window.applyRole = function() {
+  _origApplyRole();
+  // Gérant voit aussi les sections agents et finances
+  if (currentRole === 'gerant') {
+    document.querySelectorAll('.admin-only').forEach(el => {
+      el.style.display = '';
+    });
+    // Cacher seulement config technique pour le gérant
+    ['pg-transporteurs', 'pg-gsheets', 'pg-parametres'].forEach(id => {
+      const pg = document.getElementById(id);
+      if (pg) pg.classList.add('gerant-hidden');
+    });
+  }
+};
+
+// ══════════════════════════════
+// INIT JAMIL COD
+// ══════════════════════════════
+function initJamilCOD() {
+  // Apply saved theme
+  applyTheme(currentTheme);
+
+  // Inject UI enhancements
+  setTimeout(() => {
+    inject3DAnimations();
+    updateLogo();
+    injectThemeButton();
+
+    // Update page title
+    document.title = 'JAMIL COD — Algérie';
+
+    // Add theme button to login page if visible
+    const loginWrap = document.getElementById('login-wrap');
+    if (loginWrap) {
+      const themeBtn = document.createElement('button');
+      themeBtn.style.cssText = 'position:fixed;top:16px;right:16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:16px;color:#fff;backdrop-filter:blur(10px);';
+      themeBtn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+      themeBtn.onclick = () => { toggleTheme(); themeBtn.textContent = currentTheme === 'dark' ? '☀️' : '🌙'; };
+      document.body.appendChild(themeBtn);
+    }
+  }, 600);
+
+  // Update i18n translations for new statuts
+  if (typeof TRANSLATIONS !== 'undefined') {
+    const newStatuts = {
+      fr: { statut_attempt1:'Tentative 1', statut_attempt2:'Tentative 2', statut_attempt3:'Tentative 3', statut_attempt4:'Tentative 4', statut_attempt5:'Tentative 5', statut_postponed:'Reporter', statut_fake:'Fausse commande' },
+      ar: { statut_attempt1:'محاولة 1', statut_attempt2:'محاولة 2', statut_attempt3:'محاولة 3', statut_attempt4:'محاولة 4', statut_attempt5:'محاولة 5', statut_postponed:'تأجيل', statut_fake:'طلب وهمي' },
+      en: { statut_attempt1:'Attempt 1', statut_attempt2:'Attempt 2', statut_attempt3:'Attempt 3', statut_attempt4:'Attempt 4', statut_attempt5:'Attempt 5', statut_postponed:'Postponed', statut_fake:'Fake Order' },
+    };
+    Object.entries(newStatuts).forEach(([lang, keys]) => {
+      if (TRANSLATIONS[lang]) Object.assign(TRANSLATIONS[lang], keys);
+    });
+  }
+}
+
+// Start JAMIL COD
+setTimeout(initJamilCOD, 300);
 
 </script>
 </body>
