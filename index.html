@@ -491,7 +491,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
     </div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Date import</th><th data-i18n="th_client">Client</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th>Remarque (col. I)</th><th>Assigner à</th><th>Action</th></tr></thead>
+      <thead><tr><th>ID</th><th data-i18n="th_client">Client · Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th style="color:var(--gold);font-weight:800">⭐ Remarque (type voiture)</th><th>Assigner à</th><th>Action</th></tr></thead>
       <tbody id="table-imports"></tbody>
     </table></div>
   </div>
@@ -516,7 +516,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="card">
     <div class="ch"><span class="ct">File de confirmation</span><span class="muted mono" style="font-size:11px" id="conf-count">0 commandes</span></div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th data-i18n="th_client">Client</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th data-i18n="th_agent">Agent</th><th>Tentatives</th><th>Remarque</th><th data-i18n="th_status">Statut</th><th data-i18n="th_actions">Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th data-i18n="th_client">Client · Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th style="color:var(--gold);font-weight:800">⭐ Remarque (type voiture)</th><th data-i18n="th_agent">Agent</th><th>Tent.</th><th data-i18n="th_status">Statut</th><th data-i18n="th_actions">Actions</th></tr></thead>
       <tbody id="table-conf"></tbody>
     </table></div>
   </div>
@@ -1557,7 +1557,7 @@ async function syncSheets() {
     const dataRows = rows.slice(1);
 
     // Mapping colonnes (configurable dans les paramètres)
-    const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 };
+    const colMap = { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 }; // Toujours colonnes fixes
 
     const existingRows = new Set(db.commandes.filter(c => c.sheetRow != null).map(c => c.sheetRow));
     const existingTels = new Map();
@@ -2531,13 +2531,20 @@ function renderConfirmation() {
       ${isAdmin ? `<button class="btn btn-g btn-xs" title="Assigner" onclick="openAssign('${c.id}')">👤</button>
       <button class="btn btn-danger btn-xs" title="Supprimer" onclick="delCmd('${c.id}')">🗑</button>` : ''}`;
     return `<tr>
-      <td><span class="mono accent">${c.id}</span><br><span class="muted" style="font-size:9px">${c.source === 'gsheet' ? '📋 Sheet' : '✏️ Manuel'}${c.isDuplicate ? ' ⚠️Doublon' : ''}</span></td>
-      <td><strong>${c.nom}</strong></td><td class="mono">${c.tel}</td>
-      <td><span class="tag">${c.wilaya}</span></td><td>${c.produit || '—'}</td>
-      <td class="mono green">${c.montant.toLocaleString()} DZD</td>
-      <td>${ag ? `<span style="color:${ag.color}">${ag.nom}</span>` : '<span class="muted">—</span>'}</td>
-      <td class="mono" style="color:var(--gold)">${c.callAttempts || 0}</td>
-      <td style="font-size:11px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.notes || '—'}">${c.notes || '<span class="muted">—</span>'}</td>
+      <td><span class="mono accent" style="font-size:10px">${c.id}</span></td>
+      <td>
+        <div style="font-weight:700">${c.nom}</div>
+        <div class="mono muted" style="font-size:10px">${c.tel}</div>
+      </td>
+      <td><span class="tag">${c.wilaya || '—'}</span></td>
+      <td style="font-size:11px">${c.produit || '—'}</td>
+      <td>
+        ${c.notes
+          ? `<div style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);max-width:180px;word-break:break-word">${c.notes}</div>`
+          : '<span class="muted" style="font-size:11px">—</span>'}
+      </td>
+      <td>${ag ? `<div style="display:flex;align-items:center;gap:6px"><div style="width:22px;height:22px;border-radius:50%;background:${ag.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000">${ag.nom[0]}</div><span style="font-size:11px">${ag.nom}</span></div>` : '<span class="muted">—</span>'}</td>
+      <td class="mono" style="color:var(--gold);text-align:center">${c.callAttempts || 0}</td>
       <td><span class="badge b-${c.confStatut}">${CONF_STATUTS[c.confStatut] || c.confStatut}</span></td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div></td>
     </tr>`;
@@ -2551,19 +2558,27 @@ function renderImports() {
   const tbody = document.getElementById('table-imports');
   if (!imports.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-ico">📥</div><div class="empty-txt">Aucun import en attente — synchronisez votre Google Sheet</div></div></td></tr>`; return; }
   tbody.innerHTML = imports.map(c => `<tr>
-    <td><span class="mono accent">${c.id}</span>${c.isDuplicate ? '<br><span style="color:var(--red);font-size:9px">⚠️ Doublon</span>' : ''}</td>
-    <td class="mono muted" style="font-size:10px">${new Date(c.createdAt).toLocaleString('fr-DZ')}</td>
-    <td>${c.nom}</td><td class="mono">${c.tel}</td>
+    <td>
+      <span class="mono accent" style="font-size:10px">${c.id}</span>
+      ${c.isDuplicate ? '<br><span style="color:var(--red);font-size:9px">⚠️ Doublon</span>' : ''}
+    </td>
+    <td>
+      <div style="font-weight:700">${c.nom}</div>
+      <div class="mono muted" style="font-size:10px">${c.tel}</div>
+    </td>
     <td><span class="tag">${c.wilaya || '❓'}</span></td>
-    <td class="muted" style="font-size:11px">${c.produit || '—'}</td>
-    <td class="mono green">${c.montant.toLocaleString()} DZD</td>
-    <td style="font-size:11px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.notes || ''}">${c.notes || '—'}</td>
+    <td style="font-size:11px">${c.produit || '—'}</td>
+    <td>
+      ${c.notes
+        ? `<div style="background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.35);border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--text);word-break:break-word">${c.notes}</div>`
+        : '<span class="muted" style="font-size:11px">—</span>'}
+    </td>
     <td><select class="fs" id="assign-sel-${c.id}" style="font-size:11px;padding:4px 8px">
-      <option value="">Agent...</option>
+      <option value="">— Choisir —</option>
       ${db.agents.map(a => `<option value="${a.id}">${a.nom}</option>`).join('')}
     </select></td>
     <td>
-      <button class="btn btn-c btn-xs" onclick="quickAssign('${c.id}')">Assigner →</button>
+      <button class="btn btn-c btn-xs" onclick="quickAssign('${c.id}')">✅ Assigner</button>
       <button class="btn btn-danger btn-xs" onclick="delCmd('${c.id}')">🗑</button>
     </td>
   </tr>`).join('');
@@ -5735,7 +5750,7 @@ async function syncProductSheet(prodId) {
     if (rows.length < 2) { toast(`Sheet "${prod.nom}" vide`, 'i'); return; }
 
     const dataRows = rows.slice(1);
-    const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 };
+    const colMap = { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 }; // Toujours colonnes fixes
     const existingRows = new Set(db.commandes.filter(c => c.sheetRow != null && c.produit === prod.nom).map(c => c.sheetRow));
     const existingTels = new Map();
     db.commandes.filter(c => c.produit === prod.nom).forEach(c => existingTels.set(c.tel, c));
@@ -5874,7 +5889,7 @@ window.syncSheets = async function() {
           toast('Sheet vide ou seulement des en-têtes', 'i'); return;
         }
         const dataRows = rows.slice(1);
-        const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 };
+        const colMap = { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 }; // Toujours colonnes fixes
         const existingRows = new Set(db.commandes.filter(c => c.sheetRow != null).map(c => c.sheetRow));
         const existingTels = new Map();
         db.commandes.forEach(c => { existingTels.set(c.tel + '|' + (c.produit||''), c); });
