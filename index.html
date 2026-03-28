@@ -491,7 +491,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
     </div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Date import</th><th data-i18n="th_client">Client</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th>Assigner à</th><th>Action</th></tr></thead>
+      <thead><tr><th>ID</th><th>Date import</th><th data-i18n="th_client">Client</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th>Remarque (col. I)</th><th>Assigner à</th><th>Action</th></tr></thead>
       <tbody id="table-imports"></tbody>
     </table></div>
   </div>
@@ -516,7 +516,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="card">
     <div class="ch"><span class="ct">File de confirmation</span><span class="muted mono" style="font-size:11px" id="conf-count">0 commandes</span></div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th data-i18n="th_client">Client</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th data-i18n="th_agent">Agent</th><th>Tentatives</th><th data-i18n="th_status">Statut</th><th data-i18n="th_actions">Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th data-i18n="th_client">Client</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th data-i18n="th_agent">Agent</th><th>Tentatives</th><th>Remarque</th><th data-i18n="th_status">Statut</th><th data-i18n="th_actions">Actions</th></tr></thead>
       <tbody id="table-conf"></tbody>
     </table></div>
   </div>
@@ -1599,15 +1599,16 @@ async function syncSheets() {
       const wilayaRaw = (row[colMap.wilaya] || '').trim();
       const wilaya = normalizeWilaya(wilayaRaw);
 
-      // Validation montant — prix fixe si colMap.montant === -1
+      // MONTANT — exact depuis le sheet ou prix fixe
       let montant = 0;
       if (colMap.montant === -1 || colMap.montant === undefined) {
-        montant = cfg.fixedPrice || 7500;
+        montant = cfg.fixedPrice || 7500; // Prix fixe
       } else {
-        const montantRaw = (row[colMap.montant] || '').toString().replace(/[^\d.,]/g, '').replace(',', '.');
-        montant = parseFloat(montantRaw) || cfg.fixedPrice || 7500;
+        const rawM = (row[colMap.montant] || '').toString().trim();
+        const cleanM = rawM.replace(/[^\d.,]/g, '').replace(',', '.');
+        montant = parseFloat(cleanM) || cfg.fixedPrice || 7500;
       }
-      if (montant <= 0) { skipped++; return; }
+      if (montant <= 0) montant = cfg.fixedPrice || 7500;
 
       const produit = colMap.produit >= 0 ? (row[colMap.produit] || '').trim() : '';
       const noteAuto = colMap.note >= 0 ? (row[colMap.note] || '').trim() : ''; // colonne I: ما نوع سيارتك
@@ -2536,6 +2537,7 @@ function renderConfirmation() {
       <td class="mono green">${c.montant.toLocaleString()} DZD</td>
       <td>${ag ? `<span style="color:${ag.color}">${ag.nom}</span>` : '<span class="muted">—</span>'}</td>
       <td class="mono" style="color:var(--gold)">${c.callAttempts || 0}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.notes || '—'}">${c.notes || '<span class="muted">—</span>'}</td>
       <td><span class="badge b-${c.confStatut}">${CONF_STATUTS[c.confStatut] || c.confStatut}</span></td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div></td>
     </tr>`;
@@ -2555,6 +2557,7 @@ function renderImports() {
     <td><span class="tag">${c.wilaya || '❓'}</span></td>
     <td class="muted" style="font-size:11px">${c.produit || '—'}</td>
     <td class="mono green">${c.montant.toLocaleString()} DZD</td>
+    <td style="font-size:11px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.notes || ''}">${c.notes || '—'}</td>
     <td><select class="fs" id="assign-sel-${c.id}" style="font-size:11px;padding:4px 8px">
       <option value="">Agent...</option>
       ${db.agents.map(a => `<option value="${a.id}">${a.nom}</option>`).join('')}
@@ -5891,8 +5894,16 @@ window.syncSheets = async function() {
           // WILAYA — colonne G (index 6)
           const wilayaRaw = (colMap.wilaya >= 0) ? (row[colMap.wilaya] || '').trim() : '';
           const wilaya = normalizeWilaya(wilayaRaw);
-          // MONTANT — prix fixe
-          const montant = (colMap.montant === -1) ? (cfg.fixedPrice || 7500) : (parseFloat((row[colMap.montant]||'').toString().replace(/[^\d.,]/g,'').replace(',','.')) || cfg.fixedPrice || 7500);
+          // MONTANT — exact depuis le sheet ou prix fixe
+          let montant;
+          if (colMap.montant === -1 || colMap.montant === undefined) {
+            montant = cfg.fixedPrice || 7500; // Prix fixe configuré
+          } else {
+            const rawMontant = (row[colMap.montant] || '').toString().trim();
+            // Garder le prix exact du sheet (supprimer seulement les espaces et symboles monnaie)
+            const cleanMontant = rawMontant.replace(/[^\d.,]/g, '').replace(',', '.');
+            montant = parseFloat(cleanMontant) || cfg.fixedPrice || 7500;
+          }
           // PRODUIT — colonne H (index 7)
           const produit = (colMap.produit >= 0) ? (row[colMap.produit] || '').toString().trim() : (db.produits[0]?.nom || 'Produit');
           // ADRESSE — colonne D (index 3)
