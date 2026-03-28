@@ -1520,8 +1520,9 @@ async function syncSheets() {
       if (!nom || !telRaw) { skipped++; return; }
 
       // Validation téléphone algérien
-      const tel = validateTelAlgerien(telRaw);
-      if (!tel) { skipped++; addNotif(`⚠️ Ligne ${rowIndex + 1}: téléphone invalide "${telRaw}"`, 'warn'); return; }
+      // Accepter le numéro même si format non standard
+      const tel = validateTelAlgerien(telRaw) || telRaw.replace(/[\s\-\.]/g, '');
+      if (!tel || tel.length < 6) { skipped++; return; }
 
       // Validation wilaya
       const wilayaRaw = (row[colMap.wilaya] || '').trim();
@@ -1606,15 +1607,34 @@ function extractSheetId(urlOrId) {
 
 // ── Validation téléphone algérien
 function validateTelAlgerien(tel) {
-  // Nettoyer
-  let clean = tel.toString().replace(/[\s\-\.\(\)]/g, '');
+  if (!tel) return null;
+  // Nettoyer tous les caractères non numériques sauf +
+  let clean = tel.toString().trim();
+  // Supprimer espaces, tirets, points, parenthèses
+  clean = clean.replace(/[\s\-\.\(\)\/]/g, '');
   // Supprimer +213 ou 00213
   clean = clean.replace(/^(\+213|00213)/, '0');
-  // Vérifier format
+  // Format standard algérien 05/06/07
   if (/^(05|06|07)\d{8}$/.test(clean)) return clean;
-  // Essayer sans le 0 initial (certains sheets mettent 5xxxxxxxx)
+  // Sans le 0 initial (ex: 555123456 ou 5XXXXXXXX)
   if (/^(5|6|7)\d{8}$/.test(clean)) return '0' + clean;
-  return null; // invalide
+  // Format avec indicatif 213 sans le +/00 (ex: 213555123456)
+  if (/^213(5|6|7)\d{8}$/.test(clean)) return '0' + clean.slice(3);
+  // Numéro à 9 chiffres commençant par 5/6/7
+  if (/^(5|6|7)\d{7,8}$/.test(clean)) return '0' + clean;
+  // Numéro valide mais format différent — accepter quand même
+  // (ex: numéros fixes 021, 023, 031...)
+  if (/^0\d{8,9}$/.test(clean)) return clean;
+  // Si le numéro contient au moins 8 chiffres → accepter
+  const digitsOnly = clean.replace(/\D/g, '');
+  if (digitsOnly.length >= 8 && digitsOnly.length <= 13) {
+    // Normaliser: prendre les 10 derniers chiffres si trop long
+    if (digitsOnly.length > 10) return '0' + digitsOnly.slice(-9);
+    if (digitsOnly.length === 9) return '0' + digitsOnly;
+    return digitsOnly.length === 10 ? digitsOnly : '0' + digitsOnly;
+  }
+  // Accepter quand même si non vide (ne pas bloquer l'import)
+  return clean.length >= 6 ? clean : null;
 }
 
 // ── Normalisation wilaya
@@ -1945,8 +1965,8 @@ function newCmd(data) {
 async function addCmdManual() {
   const nom = v('c-nom'), tel = v('c-tel'), wilaya = v('c-wilaya'), produit = v('c-produit'), montant = v('c-montant');
   if (!nom || !tel || !wilaya || !montant) { toast('Champs obligatoires manquants', 'e'); return; }
-  const telValid = validateTelAlgerien(tel);
-  if (!telValid) { toast('Numéro de téléphone algérien invalide (05/06/07 + 8 chiffres)', 'e'); return; }
+  const telValid = validateTelAlgerien(tel) || tel.replace(/[\s\-\.]/g, '');
+  if (!telValid || telValid.length < 6) { toast('Numéro de téléphone invalide', 'e'); return; }
   const cmd = newCmd({ nom, tel: telValid, wilaya, commune: v('c-commune'), adresse: v('c-adresse'), produit, qte: v('c-qte'), montant, notes: v('c-notes'), source: 'manual' });
   if (v('c-agent')) { cmd.agentId = v('c-agent'); cmd.confStatut = 'assigned'; }
   db.commandes.unshift(cmd);
