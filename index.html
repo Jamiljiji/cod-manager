@@ -1399,7 +1399,7 @@ let db = {
     interval: 2,
     lastSync: null,
     fixedPrice: 7500,
-    columnMap: { nom: 4, tel: 5, wilaya: 6, produit: 7, note: 8, montant: -1, adresse: -1 }
+    columnMap: { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 }
   }, tarifs:{},
 };
 let cmdSeq = 1;
@@ -1557,7 +1557,7 @@ async function syncSheets() {
     const dataRows = rows.slice(1);
 
     // Mapping colonnes (configurable dans les paramètres)
-    const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: -1 };
+    const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 };
 
     const existingRows = new Set(db.commandes.filter(c => c.sheetRow != null).map(c => c.sheetRow));
     const existingTels = new Map();
@@ -5732,7 +5732,7 @@ async function syncProductSheet(prodId) {
     if (rows.length < 2) { toast(`Sheet "${prod.nom}" vide`, 'i'); return; }
 
     const dataRows = rows.slice(1);
-    const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: -1, montant: -1, adresse: -1 };
+    const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 };
     const existingRows = new Set(db.commandes.filter(c => c.sheetRow != null && c.produit === prod.nom).map(c => c.sheetRow));
     const existingTels = new Map();
     db.commandes.filter(c => c.produit === prod.nom).forEach(c => existingTels.set(c.tel, c));
@@ -5847,15 +5847,86 @@ async function syncAllSheets() {
   toast('Tous les sheets synchronisés ✅', 's');
 }
 
-// ── Override syncSheets global
+// ── Override syncSheets global — fallback sur gsheets principal
 window.syncSheets = async function() {
   const activeProds = db.produits.filter(p => p.sheet?.id && p.active);
   if (activeProds.length > 0) {
+    // Sync tous les sheets des produits
     await syncAllSheets();
   } else if (db.gsheets?.id) {
-    // fallback handled below
+    // Fallback : utiliser le sheet principal configuré
+    await (async function() {
+      const ind = document.getElementById('sync-indicator');
+      if (ind) { ind.className = 'sync-status sync-idle'; ind.innerHTML = '⏳ Synchronisation...'; }
+      const cfg = db.gsheets;
+      try {
+        const sheetId = extractSheetId(cfg.id);
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/export?format=csv&gid=0';
+        const resp = await fetch(csvUrl);
+        if (!resp.ok) throw new Error('Sheet non accessible (HTTP ' + resp.status + ') — Partagez en lecture publique');
+        const csv = await resp.text();
+        const rows = parseCSV(csv);
+        if (rows.length < 2) {
+          if (ind) { ind.className = 'sync-status sync-ok'; ind.innerHTML = '✅ Sheet vide'; }
+          toast('Sheet vide ou seulement des en-têtes', 'i'); return;
+        }
+        const dataRows = rows.slice(1);
+        const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: 3, note: 8 };
+        const existingRows = new Set(db.commandes.filter(c => c.sheetRow != null).map(c => c.sheetRow));
+        const existingTels = new Map();
+        db.commandes.forEach(c => { existingTels.set(c.tel + '|' + (c.produit||''), c); });
+        let imported = 0, skipped = 0;
+        const newCmds = [];
+        dataRows.forEach((row, i) => {
+          const rowIndex = i + 1;
+          if (existingRows.has(rowIndex)) return;
+          // NOM — colonne E (index 4)
+          const nomIdx = (colMap.nom >= 0) ? colMap.nom : 4;
+          const nom = (row[nomIdx] || '').toString().trim() || 'Client';
+          // TÉLÉPHONE — colonne F (index 5)
+          const telIdx = (colMap.tel >= 0) ? colMap.tel : 5;
+          const telRaw = (row[telIdx] || '').toString().trim();
+          const tel = validateTelAlgerien(telRaw);
+          if (!tel) { skipped++; return; }
+          // WILAYA — colonne G (index 6)
+          const wilayaRaw = (colMap.wilaya >= 0) ? (row[colMap.wilaya] || '').trim() : '';
+          const wilaya = normalizeWilaya(wilayaRaw);
+          // MONTANT — prix fixe
+          const montant = (colMap.montant === -1) ? (cfg.fixedPrice || 7500) : (parseFloat((row[colMap.montant]||'').toString().replace(/[^\d.,]/g,'').replace(',','.')) || cfg.fixedPrice || 7500);
+          // PRODUIT — colonne H (index 7)
+          const produit = (colMap.produit >= 0) ? (row[colMap.produit] || '').toString().trim() : (db.produits[0]?.nom || 'Produit');
+          // ADRESSE — colonne D (index 3)
+          const adresse = (colMap.adresse >= 0) ? (row[colMap.adresse] || '').toString().trim() : '';
+          // NOTE — colonne I (index 8)
+          const note = (colMap.note >= 0) ? (row[colMap.note] || '').toString().trim() : '';
+          // Doublon check
+          const dupeKey = tel + '|' + produit;
+          const existing = existingTels.get(dupeKey);
+          if (existing) { const diff = Date.now() - new Date(existing.createdAt).getTime(); if (diff < 48*3600*1000) { skipped++; return; } }
+          const cmd = newCmd({ nom, tel, wilaya, produit, montant, adresse, notes: note, source: 'gsheet', sheetRow: rowIndex });
+          newCmds.push(cmd); imported++;
+          existingTels.set(dupeKey, cmd);
+        });
+        if (newCmds.length > 0) {
+          newCmds.forEach(cmd => db.commandes.unshift(cmd));
+          db.gsheets.lastSync = new Date().toISOString();
+          saveDB();
+          if (supabaseReady && newCmds.length > 0) {
+            const rows2 = newCmds.map(c => ({ id: c.id, created_at: c.createdAt, updated_at: c.updatedAt, source: 'gsheet', nom: c.nom, tel: c.tel, wilaya: c.wilaya, commune: '', adresse: c.adresse || '', produit: c.produit, qte: c.qte || 1, montant: c.montant, frais_livraison: db.tarifs[c.wilaya] || 500, conf_statut: 'new', agent_id: null, call_attempts: 0, conf_notes: [], deliv_phase: null, carrier: null, tracking_num: null, tracking_history: [], notes: c.notes || '', sheet_row: c.sheetRow }));
+            await sbClient.from('commandes').insert(rows2).catch(e => console.warn('[Supabase insert]:', e.message));
+          }
+        }
+        if (ind) { ind.className = 'sync-status sync-ok'; ind.innerHTML = '✅ Synchronisé · +' + imported + ' commandes · ' + skipped + ' ignorées'; }
+        toast('✅ Sync: +' + imported + ' commandes' + (skipped > 0 ? ', ' + skipped + ' ignorées' : ''), imported > 0 ? 's' : 'i');
+        if (imported > 0) { addNotif('📋 Google Sheet: +' + imported + ' nouvelles commandes', 'gsheet'); renderAll(); }
+      } catch(e) {
+        if (ind) { ind.className = 'sync-status sync-err'; ind.innerHTML = '❌ ' + e.message; }
+        toast('❌ Erreur sync: ' + e.message, 'e');
+        console.error('[syncSheets]', e);
+      }
+    })();
   } else {
-    toast('Aucun sheet configuré', 'w');
+    toast('⚠️ Aucun sheet configuré — allez dans Imports pour configurer', 'w');
   }
 };
 
