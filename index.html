@@ -830,7 +830,11 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="md" style="width:500px">
     <div class="mh"><span class="mt" id="m-carrier-title">Configuration API</span><button class="mx" onclick="close_modal('m-carrier')">✕</button></div>
     <div class="mb_" id="m-carrier-body"></div>
-    <div class="mf"><button class="btn btn-g" onclick="close_modal('m-carrier')">Annuler</button><button class="btn btn-c" onclick="saveCarrierConfig()">🔑 Connecter</button></div>
+    <div class="mf">
+      <button class="btn btn-g" onclick="close_modal('m-carrier')">Annuler</button>
+      <button class="btn btn-warn" id="carrier-test-btn" onclick="testCarrierConnection()">🧪 Tester</button>
+      <button class="btn btn-c" id="carrier-save-btn" onclick="saveCarrierConfigUI()">🔑 Connecter</button>
+    </div>
   </div>
 </div>
 
@@ -1831,35 +1835,61 @@ function mapYalidineStatus(status) {
 
 // ── ZR EXPRESS API
 async function zrCreateParcel(cmd, cfg) {
-  // ZR Express nouvelle plateforme — authentification par token API uniquement
+  // ZR Express nouvelle plateforme app.zrexpress.dz
+  const token = cfg.token || cfg.api_token || cfg.apiToken || '';
+  if (!token) throw new Error('Token ZR Express manquant — configurez votre token dans Transporteurs');
+
+  // Essayer plusieurs formats d'endpoint ZR Express
+  const endpoints = [
+    'https://app.zrexpress.dz/api/parcel/create',
+    'https://app.zrexpress.dz/api/v1/parcel/create',
+    'https://app.zrexpress.dz/api/parcels',
+  ];
+
   const payload = {
+    // Format 1: nouveau format
     nom: cmd.nom,
-    telephone: cmd.tel,
+    telephone: cmd.tel.replace(/^0/, '+213'),
     telephone2: '',
-    adresse: cmd.adresse || cmd.commune || cmd.wilaya,
+    adresse: cmd.adresse || cmd.wilaya,
     wilaya_id: WILAYA_IDS[cmd.wilaya] || 16,
-    commune: cmd.commune || '',
+    wilaya: cmd.wilaya || '',
+    commune: cmd.commune || cmd.wilaya || '',
     produit: cmd.produit || 'Colis',
     prix: cmd.montant,
+    cod: cmd.montant,
     remarque: cmd.notes || '',
+    note: cmd.notes || '',
     type_envoi: cmd.delivType === 'stopdesk' ? 2 : 1,
+    type: cmd.delivType === 'stopdesk' ? 'stopdesk' : 'home',
     poids: 1,
+    weight: 1,
   };
-  const resp = await fetch('https://app.zrexpress.dz/api/parcel/create', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + cfg.token,
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error('ZR Express: ' + (err.message || err.detail || resp.status));
+
+  let lastError = '';
+  for (const endpoint of endpoints) {
+    try {
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const trackNum = data?.tracking || data?.tracking_number || data?.code || data?.id || data?.barcode || generateTrackingNum('zr_express');
+        return { trackingNum: String(trackNum), raw: data };
+      }
+      const errText = await resp.text().catch(() => resp.status);
+      lastError = 'HTTP ' + resp.status + ': ' + errText.slice(0, 100);
+    } catch(e) {
+      lastError = e.message;
+    }
   }
-  const data = await resp.json();
-  const trackNum = data?.tracking || data?.code || data?.id || generateTrackingNum('zr_express');
-  return { trackingNum: trackNum, raw: data };
+  throw new Error('ZR Express: ' + lastError);
 }
 
 async function zrGetStatus(trackingNum, cfg) {
@@ -2337,6 +2367,64 @@ async function disconnectCarrier(key) {
   await saveCarrierConfig(key, { connected: false });
   close_modal('m-carrier'); renderTransporteurs();
   toast(`${CARRIERS[key].name} déconnecté`, 'i');
+}
+
+// ── Tester la connexion transporteur
+async function testCarrierConnection() {
+  const key = document.getElementById('cc-key')?.value;
+  const btn = document.getElementById('carrier-test-btn');
+  if (!key || !CARRIERS[key]) { toast('Sélectionnez un transporteur', 'w'); return; }
+
+  const cfg = {};
+  CARRIERS[key].fields.forEach(f => {
+    cfg[f] = document.getElementById('cc-' + f)?.value?.trim() || '';
+  });
+
+  if (!cfg.token && !cfg.api_id) { toast("Entrez votre token/clé API d'abord", 'w'); return; }
+  if (btn) { btn.textContent = '⏳ Test...'; btn.disabled = true; }
+
+  try {
+    let testOk = false;
+    if (key === 'zr_express') {
+      // Test ZR Express connection
+      const token = cfg.token || '';
+      const endpoints = [
+        'https://app.zrexpress.dz/api/parcel/list',
+        'https://app.zrexpress.dz/api/v1/parcels',
+        'https://app.zrexpress.dz/api/user',
+        'https://app.zrexpress.dz/api/wilayas',
+      ];
+      for (const ep of endpoints) {
+        try {
+          const r = await fetch(ep, {
+            headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+          });
+          if (r.status !== 404 && r.status !== 000) { testOk = true; break; }
+        } catch(e) {}
+      }
+    } else if (key === 'yalidine') {
+      const r = await fetch('https://api.yalidine.app/v1/wilayas/', {
+        headers: { 'X-API-ID': cfg.api_id || '', 'X-API-TOKEN': cfg.api_token || '' }
+      });
+      testOk = r.ok;
+    } else if (key === 'maystro') {
+      const r = await fetch('https://api.maystro-delivery.com/wilayas/', {
+        headers: { 'Authorization': 'Token ' + (cfg.token || '') }
+      });
+      testOk = r.ok || r.status === 401; // 401 = API reachable but wrong token
+    }
+
+    if (testOk) {
+      toast('✅ Connexion réussie — API accessible !', 's');
+      document.getElementById('carrier-save-btn').style.background = 'var(--green)';
+    } else {
+      toast('⚠️ API accessible mais token peut-être invalide — essayez quand même de connecter', 'w');
+    }
+  } catch(e) {
+    toast('❌ Erreur: ' + e.message, 'e');
+  } finally {
+    if (btn) { btn.textContent = '🧪 Tester'; btn.disabled = false; }
+  }
 }
 
 // ── Remplacer l'ancienne saveCarrierConfig (UI) par la nouvelle
