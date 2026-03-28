@@ -4888,46 +4888,63 @@ async function createUserAccount(nom, email, password, role, agentId) {
     toast("Supabase requis pour créer des comptes", 'w');
     return false;
   }
+  const loginEmail = email.includes('@') ? email : email + '@codmanager.dz';
+
+  // Méthode 1: API Admin (crée compte directement activé)
   try {
-    // 1. Créer le compte auth via l'API admin
     const { data: authData, error: authErr } = await sbClient.auth.admin.createUser({
-      email: email.includes('@') ? email : email + '@codmanager.dz',
+      email: loginEmail,
       password: password,
-      email_confirm: true,
+      email_confirm: true, // Activer sans email de confirmation
+      user_metadata: { nom, role },
     });
-    if (authErr) throw authErr;
-
-    // 2. Créer le profil
-    await sbClient.from('user_profiles').insert({
-      id: authData.user.id,
-      role: role,
-      agent_id: agentId || null,
-      nom: nom,
-    });
-
-    return authData.user.id;
-  } catch(e) {
-    // Si admin API pas disponible, utiliser signUp normal
-    try {
-      const loginEmail = email.includes('@') ? email : email + '@codmanager.dz';
-      const { data, error } = await sbClient.auth.signUp({
-        email: loginEmail,
-        password: password,
-      });
-      if (error) throw error;
-      if (data.user) {
-        try {
-          await sbClient.from('user_profiles').insert({
-            id: data.user.id, role, agent_id: agentId || null, nom,
-          });
-        } catch(pe) {}
-        return data.user.id;
-      }
-    } catch(e2) {
-      console.warn('[Auth] createUserAccount fallback failed:', e2.message);
+    if (!authErr && authData?.user) {
+      try {
+        await sbClient.from('user_profiles').insert({
+          id: authData.user.id, role, agent_id: agentId || null, nom,
+        });
+      } catch(pe) {}
+      console.log('[Auth] Compte créé via admin API:', loginEmail);
+      return authData.user.id;
     }
-    return null;
+    console.warn('[Auth] Admin API error:', authErr?.message);
+  } catch(e) {
+    console.warn('[Auth] Admin API not available:', e.message);
   }
+
+  // Méthode 2: signUp normal (confirmation email désactivée dans Supabase)
+  try {
+    const { data, error } = await sbClient.auth.signUp({
+      email: loginEmail,
+      password: password,
+      options: {
+        data: { nom, role },
+        emailRedirectTo: null, // Pas de redirect email
+      }
+    });
+    if (error) throw error;
+    const userId = data?.user?.id;
+    if (userId) {
+      // Attendre un peu que Supabase crée l'utilisateur
+      await new Promise(r => setTimeout(r, 500));
+      try {
+        await sbClient.from('user_profiles').insert({
+          id: userId, role, agent_id: agentId || null, nom,
+        });
+      } catch(pe) {
+        // Profil peut-être déjà créé via trigger
+        await sbClient.from('user_profiles').upsert({
+          id: userId, role, agent_id: agentId || null, nom,
+        }).catch(() => {});
+      }
+      console.log('[Auth] Compte créé via signUp:', loginEmail);
+      return userId;
+    }
+  } catch(e2) {
+    console.error('[Auth] signUp failed:', e2.message);
+    toast('Erreur création compte: ' + e2.message, 'e');
+  }
+  return null;
 }
 
 // ── Modal création compte — injecté dynamiquement
