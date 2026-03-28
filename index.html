@@ -308,26 +308,26 @@ tr:hover td{background:rgba(255,255,255,.015);}
     </div>
   </div>
   <nav class="nav">
-    <div class="nav-sec admin-only">Tableau de bord</div>
-    <div class="ni on admin-only" onclick="go('dashboard')"><span class="ico">⬛</span> Dashboard</div>
-    <div class="ni admin-only" onclick="go('analytics')"><span class="ico">📊</span> Analytiques</div>
+    <div class="nav-sec admin-only" data-i18n="nav_dashboard_sec">Tableau de bord</div>
+    <div class="ni on admin-only" onclick="go('dashboard')"><span class="ico">⬛</span> <span data-i18n="nav_dashboard">Dashboard</span></div>
+    <div class="ni admin-only" onclick="go('analytics')"><span class="ico">📊</span> <span data-i18n="nav_analytics">Analytiques</span></div>
 
-    <div class="nav-sec">Commandes</div>
-    <div class="ni" onclick="go('imports')"><span class="ico">📥</span> Imports Google Sheet <span class="nbadge gold" id="nb-new">0</span></div>
-    <div class="ni" onclick="go('confirmation')"><span class="ico">📞</span> Confirmation <span class="nbadge" id="nb-conf">0</span></div>
-    <div class="ni" onclick="go('livraison')"><span class="ico">🚚</span> Livraison</div>
-    <div class="ni" onclick="go('suivi')"><span class="ico">📡</span> Suivi colis</div>
+    <div class="nav-sec" data-i18n="nav_commandes_sec">Commandes</div>
+    <div class="ni" onclick="go('imports')"><span class="ico">📥</span> <span data-i18n="nav_imports">Imports Google Sheet</span> <span class="nbadge gold" id="nb-new">0</span></div>
+    <div class="ni" onclick="go('confirmation')"><span class="ico">📞</span> <span data-i18n="nav_confirmation">Confirmation</span> <span class="nbadge" id="nb-conf">0</span></div>
+    <div class="ni" onclick="go('livraison')"><span class="ico">🚚</span> <span data-i18n="nav_livraison">Livraison</span></div>
+    <div class="ni" onclick="go('suivi')"><span class="ico">📡</span> <span data-i18n="nav_suivi">Suivi colis</span></div>
 
-    <div class="nav-sec admin-only">Gestion</div>
-    <div class="ni admin-only" onclick="go('agents')"><span class="ico">👥</span> Confirmateurs</div>
-    <div class="ni admin-only" onclick="go('produits')"><span class="ico">📦</span> Produits</div>
-    <div class="ni admin-only" onclick="go('finances')"><span class="ico">💰</span> Finances</div>
+    <div class="nav-sec admin-only" data-i18n="nav_gestion_sec">Gestion</div>
+    <div class="ni admin-only" onclick="go('agents')"><span class="ico">👥</span> <span data-i18n="nav_agents">Confirmateurs</span></div>
+    <div class="ni admin-only" onclick="go('produits')"><span class="ico">📦</span> <span data-i18n="nav_produits">Produits</span></div>
+    <div class="ni admin-only" onclick="go('finances')"><span class="ico">💰</span> <span data-i18n="nav_finances">Finances</span></div>
 
-    <div class="ni admin-only" onclick="go('clients')"><span class="ico">👥</span> Clients</div>
-    <div class="nav-sec admin-only">Config</div>
+    <div class="ni admin-only" onclick="go('clients')"><span class="ico">👥</span> <span data-i18n="nav_clients">Clients</span></div>
+    <div class="nav-sec admin-only" data-i18n="nav_config_sec">Config</div>
     <div class="ni admin-only" onclick="go('transporteurs')"><span class="ico">🏢</span> Sociétés de livraison</div>
-    <div class="ni admin-only" onclick="go('gsheets')"><span class="ico">📋</span> Google Sheets</div>
-    <div class="ni admin-only" onclick="go('parametres')"><span class="ico">⚙️</span> Paramètres</div>
+    <div class="ni admin-only" onclick="go('gsheets')"><span class="ico">📋</span> <span data-i18n="nav_gsheets">Google Sheets</span></div>
+    <div class="ni admin-only" onclick="go('parametres')"><span class="ico">⚙️</span> <span data-i18n="nav_parametres">Paramètres</span></div>
   </nav>
   <div class="sidebar-foot">
     <div class="user-row">
@@ -346,8 +346,8 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="topbar">
     <div class="tb-left">
       <div>
-        <div class="tb-title" id="page-title">Dashboard</div>
-        <div class="tb-sub" id="page-sub">Vue globale</div>
+        <div class="tb-title" id="page-title" data-i18n="page_dashboard">Dashboard</div>
+        <div class="tb-sub" id="page-sub" data-i18n="page_dashboard_sub">Vue globale</div>
       </div>
     </div>
     <div class="tb-right">
@@ -373,7 +373,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="grid2">
     <div class="card">
       <div class="ch"><span class="ct">Dernières commandes</span><button class="btn btn-g btn-sm" onclick="go('livraison')">Voir tout →</button></div>
-      <div class="tw"><table><thead><tr><th>ID</th><th>Client</th><th>Produit</th><th>Montant</th><th>Statut</th></tr></thead><tbody id="dash-recent"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th>ID</th><th data-i18n="th_client">Client</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th data-i18n="th_status">Statut</th></tr></thead><tbody id="dash-recent"></tbody></table></div>
     </div>
     <div class="card">
       <div class="ch"><span class="ct">Performance confirmateurs</span><button class="btn btn-g btn-sm admin-only" onclick="go('agents')">Détails →</button></div>
@@ -441,13 +441,42 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <label class="fl">Google Sheets API Key (optionnel — pour sheets privés)</label>
         <input class="fi" id="gs-apikey" placeholder="AIzaSy... — laissez vide si sheet public">
       </div>
+      <!-- Mapping colonnes — configurable manuellement -->
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Colonnes du Google Sheet (A à L)</div>
       <div class="fr3">
-        <div class="fg"><label class="fl">Colonne Nom client</label><select class="fs" id="gsc-nom"><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option></select></div>
-        <div class="fg"><label class="fl">Colonne Téléphone</label><select class="fs" id="gsc-tel"><option>A</option><option selected>B</option><option>C</option><option>D</option><option>E</option></select></div>
-        <div class="fg"><label class="fl">Colonne Wilaya</label><select class="fs" id="gsc-wilaya"><option>A</option><option>B</option><option selected>C</option><option>D</option></select></div>
-        <div class="fg"><label class="fl">Colonne Produit</label><select class="fs" id="gsc-produit"><option>A</option><option>B</option><option>C</option><option selected>D</option></select></div>
-        <div class="fg"><label class="fl">Colonne Montant COD</label><select class="fs" id="gsc-montant"><option>A</option><option>B</option><option>C</option><option>D</option><option selected>E</option></select></div>
-        <div class="fg"><label class="fl">Colonne Adresse</label><select class="fs" id="gsc-adresse"><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option selected>F</option></select></div>
+        <div class="fg">
+          <label class="fl">👤 Nom client</label>
+          <select class="fs" id="gsc-nom"><option >A</option><option >B</option><option >C</option><option >D</option><option selected>E</option><option selected>F</option><option selected>G</option><option >H</option><option >I</option><option >J</option><option >K</option><option >L</option></select>
+        </div>
+        <div class="fg">
+          <label class="fl">📱 Téléphone</label>
+          <select class="fs" id="gsc-tel"><option >A</option><option >B</option><option >C</option><option >D</option><option selected>E</option><option selected>F</option><option selected>G</option><option >H</option><option >I</option><option >J</option><option >K</option><option >L</option></select>
+        </div>
+        <div class="fg">
+          <label class="fl">🗺️ Wilaya</label>
+          <select class="fs" id="gsc-wilaya"><option >A</option><option >B</option><option >C</option><option >D</option><option selected>E</option><option selected>F</option><option selected>G</option><option >H</option><option >I</option><option >J</option><option >K</option><option >L</option></select>
+        </div>
+        <div class="fg">
+          <label class="fl">📦 Produit</label>
+          <select class="fs" id="gsc-produit">
+            <option value="__fixed">— Nom du produit fixe —</option>
+            <option >A</option><option >B</option><option >C</option><option >D</option><option >E</option><option >F</option><option >G</option><option selected>H</option><option >I</option><option >J</option><option >K</option><option >L</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">💰 Montant COD</label>
+          <select class="fs" id="gsc-montant">
+            <option value="__fixed">— Prix fixe du produit —</option>
+            <option >A</option><option >B</option><option >C</option><option >D</option><option >E</option><option >F</option><option >G</option><option >H</option><option selected>I</option><option >J</option><option >K</option><option >L</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">🏠 Adresse</label>
+          <select class="fs" id="gsc-adresse">
+            <option value="__none">— Pas de colonne —</option>
+            <option >A</option><option >B</option><option >C</option><option >D</option><option >E</option><option >F</option><option >G</option><option >H</option><option >I</option><option selected>J</option><option >K</option><option >L</option>
+          </select>
+        </div>
       </div>
       <button class="btn btn-c" onclick="saveSheetConfig()">💾 Sauvegarder config</button>
       <button class="btn btn-g" onclick="testSheetConnection()" style="margin-left:8px">🧪 Tester connexion</button>
@@ -462,7 +491,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
     </div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Date import</th><th>Client</th><th>Téléphone</th><th>Wilaya</th><th>Produit</th><th>Montant</th><th>Assigner à</th><th>Action</th></tr></thead>
+      <thead><tr><th>ID</th><th>Date import</th><th data-i18n="th_client">Client</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th>Assigner à</th><th>Action</th></tr></thead>
       <tbody id="table-imports"></tbody>
     </table></div>
   </div>
@@ -487,7 +516,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="card">
     <div class="ch"><span class="ct">File de confirmation</span><span class="muted mono" style="font-size:11px" id="conf-count">0 commandes</span></div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Client</th><th>Téléphone</th><th>Wilaya</th><th>Produit</th><th>Montant</th><th>Agent</th><th>Tentatives</th><th>Statut</th><th>Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th data-i18n="th_client">Client</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th data-i18n="th_agent">Agent</th><th>Tentatives</th><th data-i18n="th_status">Statut</th><th data-i18n="th_actions">Actions</th></tr></thead>
       <tbody id="table-conf"></tbody>
     </table></div>
   </div>
@@ -524,7 +553,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
     </div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Client</th><th>Wilaya</th><th>Produit</th><th>Montant</th><th>Transporteur</th><th>N° Tracking</th><th>Phase</th><th>Dernière MAJ</th><th>Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th data-i18n="th_client">Client</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th data-i18n="th_amount">Montant</th><th data-i18n="th_carrier">Transporteur</th><th>N° Tracking</th><th data-i18n="th_phase">Phase</th><th>Dernière MAJ</th><th data-i18n="th_actions">Actions</th></tr></thead>
       <tbody id="table-liv"></tbody>
     </table></div>
   </div>
@@ -548,7 +577,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="card">
     <div class="ch"><span class="ct">Commandes en cours de livraison</span><span class="tag" id="shipping-cnt">0 actives</span></div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Client</th><th>Wilaya</th><th>Transporteur</th><th>Phase</th><th>N° Tracking</th><th>Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th data-i18n="th_client">Client</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_carrier">Transporteur</th><th data-i18n="th_phase">Phase</th><th>N° Tracking</th><th data-i18n="th_actions">Actions</th></tr></thead>
       <tbody id="table-shipping"></tbody>
     </table></div>
   </div>
@@ -575,7 +604,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="card">
     <div class="ch"><span class="ct">Performance par produit</span></div>
     <div class="tw"><table>
-      <thead><tr><th>Produit</th><th>Prix COD</th><th>Confirmateurs</th><th>Commandes</th><th>Conf %</th><th>Livr %</th><th>CA DZD</th><th>Actions</th></tr></thead>
+      <thead><tr><th data-i18n="th_product">Produit</th><th>Prix COD</th><th>Confirmateurs</th><th>Commandes</th><th>Conf %</th><th>Livr %</th><th>CA DZD</th><th data-i18n="th_actions">Actions</th></tr></thead>
       <tbody id="table-produits"></tbody>
     </table></div>
   </div>
@@ -588,7 +617,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="card">
       <div class="ch"><span class="ct">Récapitulatif par agent</span></div>
       <div class="tw"><table>
-        <thead><tr><th>Agent</th><th>Livrées</th><th>COD collecté</th><th>Commission</th><th>Solde dû</th></tr></thead>
+        <thead><tr><th data-i18n="th_agent">Agent</th><th>Livrées</th><th>COD collecté</th><th>Commission</th><th>Solde dû</th></tr></thead>
         <tbody id="fin-agents"></tbody>
       </table></div>
     </div>
@@ -662,7 +691,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
   <div class="card">
     <div class="tw"><table>
-      <thead><tr><th>Nom</th><th>Téléphone</th><th>Wilaya</th><th>Commandes</th><th>Total DZD</th><th>Dernière cmd</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Nom</th><th data-i18n="th_phone">Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th>Commandes</th><th>Total DZD</th><th>Dernière cmd</th><th data-i18n="th_actions">Actions</th></tr></thead>
       <tbody id="table-clients"></tbody>
     </table></div>
   </div>
@@ -1365,12 +1394,12 @@ let db = {
   carriers:{ yalidine:{connected:false}, zr_express:{connected:false}, maystro:{connected:false} },
   notifications:[], params:{ shopName:'Ma Boutique DZ', commission:5 },
   gsheets:{
-    id: '1kVtinFrbbd-je2hjHm0k2bzUHGJRZZbcIdzMip_I7eU',
+    id: '1Y4aoDhoHyS04kkbiCHWKJynyzBfc4jDF4eOBXJ3EwjU',
     tab: 'Feuille1',
     interval: 2,
     lastSync: null,
     fixedPrice: 7500,
-    columnMap: { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: -1 }
+    columnMap: { nom: 4, tel: 5, wilaya: 6, produit: 7, note: 8, montant: -1, adresse: -1 }
   }, tarifs:{},
 };
 let cmdSeq = 1;
@@ -1528,7 +1557,7 @@ async function syncSheets() {
     const dataRows = rows.slice(1);
 
     // Mapping colonnes (configurable dans les paramètres)
-    const colMap = cfg.columnMap || { nom: 0, tel: 1, wilaya: 2, produit: 3, montant: 4, adresse: 5 };
+    const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: 7, montant: -1, adresse: -1 };
 
     const existingRows = new Set(db.commandes.filter(c => c.sheetRow != null).map(c => c.sheetRow));
     const existingTels = new Map();
@@ -1544,21 +1573,13 @@ async function syncSheets() {
       const rowIndex = i + 1; // +1 car on a slicé après l'en-tête
       if (existingRows.has(rowIndex)) return; // déjà importé
 
-      // Nom client — colonne E (index 4) en priorité absolue
-      const nomCol1 = (colMap.nom !== undefined && colMap.nom >= 0) ? colMap.nom : 4;
-      let nomRaw = (row[nomCol1] || '').toString().trim();
-      // Fallback: chercher dans D, F, C, G si E est vide
-      if (!nomRaw) {
-        for (const col of [3, 5, 2, 6, 1, 7]) {
-          if (col === colMap.tel || col >= row.length) continue;
-          const val = (row[col] || '').toString().trim();
-          if (val && val.length > 1 && val.length < 60 && !/^\d{7,}$/.test(val) && !val.includes('@') && !val.includes('http')) {
-            nomRaw = val; break;
-          }
-        }
-      }
-      const nom = nomRaw || 'Client';
-      const telRaw = (row[colMap.tel] || '').toString().trim();
+      // ── NOM : utilise exactement la colonne configurée (E=4 par défaut)
+      const nomIdx = (colMap.nom >= 0) ? colMap.nom : 4;
+      const nom = (row[nomIdx] || '').toString().trim() || 'Client';
+
+      // ── TÉLÉPHONE : utilise exactement la colonne configurée (F=5 par défaut)
+      const telIdx = (colMap.tel >= 0) ? colMap.tel : 5;
+      const telRaw = (row[telIdx] || '').toString().trim();
       if (!telRaw) { skipped++; return; }
 
       // Validation téléphone algérien
@@ -1588,7 +1609,8 @@ async function syncSheets() {
       }
       if (montant <= 0) { skipped++; return; }
 
-      const produit = (row[colMap.produit] || '').trim();
+      const produit = colMap.produit >= 0 ? (row[colMap.produit] || '').trim() : '';
+      const noteAuto = colMap.note >= 0 ? (row[colMap.note] || '').trim() : ''; // colonne I: ما نوع سيارتك
 
       // Détection doublons (même tel + produit dans 48h)
       const dupeKey = tel + '|' + produit;
@@ -1602,9 +1624,13 @@ async function syncSheets() {
         }
       }
 
+      // Colonne D = City/Adresse, Colonne I = Note/Type voiture
+      const adresseVal = colMap.adresse >= 0 ? (row[colMap.adresse] || '').toString().trim() : '';
+      const noteVal = colMap.note >= 0 ? (row[colMap.note] || '').toString().trim() : (noteAuto || '');
       const cmd = newCmd({
         nom, tel, wilaya, produit, montant,
-        adresse: (row[colMap.adresse] || '').trim(),
+        adresse: adresseVal,
+        notes: noteVal,
         source: 'gsheet', sheetRow: rowIndex,
         isDuplicate: !!existing48h,
       });
@@ -1721,13 +1747,18 @@ function saveSheetConfig() {
   db.gsheets.tab = v('gs-tab') || 'Feuille1';
   db.gsheets.interval = parseInt(v('gs-interval')) || 2;
   db.gsheets.apiKey = v('gs-apikey') || '';
+  const getCol = (id, def) => {
+    const val = v(id);
+    if (!val || val === '__fixed' || val === '__none') return -1;
+    return colLetterToIndex(val) >= 0 ? colLetterToIndex(val) : colLetterToIndex(def);
+  };
   db.gsheets.columnMap = {
-    nom: colLetterToIndex(v('gsc-nom') || 'A'),
-    tel: colLetterToIndex(v('gsc-tel') || 'B'),
-    wilaya: colLetterToIndex(v('gsc-wilaya') || 'C'),
-    produit: colLetterToIndex(v('gsc-produit') || 'D'),
-    montant: colLetterToIndex(v('gsc-montant') || 'E'),
-    adresse: colLetterToIndex(v('gsc-adresse') || 'F'),
+    nom: getCol('gsc-nom', 'E'),
+    tel: getCol('gsc-tel', 'F'),
+    wilaya: getCol('gsc-wilaya', 'G'),
+    produit: getCol('gsc-produit', 'H'),
+    montant: getCol('gsc-montant', 'I'),
+    adresse: getCol('gsc-adresse', 'J'),
   };
   saveParamDB('gsheets', db.gsheets);
   saveDB(); toast('Config Google Sheets sauvegardée ✅', 's');
@@ -2715,7 +2746,7 @@ function renderAnalytics() {
     <div class="cb"><div class="kpi-row"><div class="kpi"><div class="kpi-v">${cmds.length}</div><div class="kpi-l">Total</div></div><div class="kpi"><div class="kpi-v green">${cmds.length ? Math.round(conf / cmds.length * 100) : 0}%</div><div class="kpi-l">Conf.</div></div><div class="kpi"><div class="kpi-v" style="color:var(--blue)">${conf ? Math.round(del / conf * 100) : 0}%</div><div class="kpi-l">Livr.</div></div><div class="kpi"><div class="kpi-v red">${del + ret ? Math.round(ret / (del + ret) * 100) : 0}%</div><div class="kpi-l">Retour</div></div></div>
     <div class="muted" style="font-size:11px">CA: <span class="green mono">${ca.toLocaleString()} DZD</span></div></div></div>`;
   }).join('') || '<div class="empty" style="grid-column:1/-1"><div class="empty-txt">Aucun confirmateur</div></div>'}</div>`;
-  document.getElementById('produits-analytics').innerHTML = `<div class="card"><div class="tw"><table><thead><tr><th>Produit</th><th>Total</th><th>Conf %</th><th>Livr %</th><th>Retour %</th><th>CA DZD</th></tr></thead><tbody>${ps.map(p => `<tr><td><strong>${p.nom}</strong></td><td class="mono">${p.total}</td><td class="mono accent">${p.confRate}%</td><td class="mono green">${p.delivRate}%</td><td class="mono red">${p.retRate}%</td><td class="mono green">${p.ca.toLocaleString()}</td></tr>`).join('') || `<tr><td colspan="6"><div class="empty"><div class="empty-txt">Aucune donnée</div></div></td></tr>`}</tbody></table></div></div>`;
+  document.getElementById('produits-analytics').innerHTML = `<div class="card"><div class="tw"><table><thead><tr><th data-i18n="th_product">Produit</th><th>Total</th><th>Conf %</th><th>Livr %</th><th>Retour %</th><th>CA DZD</th></tr></thead><tbody>${ps.map(p => `<tr><td><strong>${p.nom}</strong></td><td class="mono">${p.total}</td><td class="mono accent">${p.confRate}%</td><td class="mono green">${p.delivRate}%</td><td class="mono red">${p.retRate}%</td><td class="mono green">${p.ca.toLocaleString()}</td></tr>`).join('') || `<tr><td colspan="6"><div class="empty"><div class="empty-txt">Aucune donnée</div></div></td></tr>`}</tbody></table></div></div>`;
   document.getElementById('wilayas-analytics').innerHTML = (() => {
     const wMap = {};
     db.commandes.forEach(c => {
@@ -3137,6 +3168,26 @@ function loadParamsUI() {
     if (urlEl) urlEl.value = db.gsheets.id;
     const intEl = document.getElementById('gs-interval'); if (intEl) intEl.value = db.gsheets.interval || 2;
     const apiEl = document.getElementById('gs-apikey'); if (apiEl) apiEl.value = db.gsheets.apiKey || '';
+  }
+  // Restore saved column mapping
+  const cm = db.gsheets.columnMap;
+  const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+  if (cm) {
+    const setCol = (id, idx) => { const el = document.getElementById(id); if(el && idx >= 0 && colLetters[idx]) el.value = colLetters[idx]; };
+    setCol('gsc-nom', cm.nom);
+    setCol('gsc-tel', cm.tel);
+    setCol('gsc-wilaya', cm.wilaya);
+    setCol('gsc-montant', cm.montant);
+    setCol('gsc-adresse', cm.adresse);
+  }
+  // Update sync indicator with current config
+  const syncInd = document.getElementById('sync-indicator');
+  if (syncInd && db.gsheets.id) {
+    const lastSync = db.gsheets.lastSync ? timeAgo(db.gsheets.lastSync) : 'Jamais';
+    const colNames = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+    const cm2 = db.gsheets.columnMap || {};
+    syncInd.className = 'sync-status sync-ok';
+    syncInd.innerHTML = '✅ Sheet configuré · Nom: col.' + (colNames[cm2.nom]||'E') + ' · Tél: col.' + (colNames[cm2.tel]||'F') + ' · Wilaya: col.' + (colNames[cm2.wilaya]||'G') + ' · Sync: ' + lastSync;
   }
 }
 
@@ -4127,9 +4178,9 @@ const TRANSLATIONS = {
     nav_config_sec: 'الإعدادات',
     nav_dashboard: 'لوحة التحكم',
     nav_analytics: 'الإحصائيات',
-    nav_imports: 'استيراد Google Sheet',
+    nav_imports: 'استيراد الطلبات',
     nav_confirmation: 'التأكيد',
-    nav_livraison: 'التوصيل',
+    nav_livraison: 'التسليم',
     nav_suivi: 'تتبع الطرود',
     nav_agents: 'المؤكدون',
     nav_produits: 'المنتجات',
@@ -4142,15 +4193,15 @@ const TRANSLATIONS = {
     page_dashboard_sub: 'نظرة عامة في الوقت الفعلي',
     page_analytics: 'الإحصائيات',
     page_analytics_sub: 'مؤشرات الأداء',
-    page_imports: 'استيراد Google Sheet',
+    page_imports: 'استيراد الطلبات',
     page_imports_sub: 'الطلبات الجديدة المستوردة',
     page_confirmation: 'التأكيد',
     page_confirmation_sub: 'قائمة مكالمات المؤكدين',
-    page_livraison: 'التوصيل',
-    page_livraison_sub: 'متابعة مراحل التوصيل',
+    page_livraison: 'التسليم',
+    page_livraison_sub: 'متابعة مراحل التسليم',
     page_suivi: 'تتبع الطرود',
     page_suivi_sub: 'تتبع برقم الطلب',
-    page_agents: 'الوكلاء',
+    page_agents: 'المؤكدون',
     page_agents_sub: 'فريق التأكيد',
     page_produits: 'المنتجات',
     page_produits_sub: 'الكتالوج والإحصائيات',
@@ -4168,8 +4219,8 @@ const TRANSLATIONS = {
     page_clients_sub: 'قاعدة بيانات العملاء',
     stat_total: 'إجمالي الطلبات',
     stat_imports: 'مستوردات جديدة',
-    stat_delivery: 'قيد التوصيل',
-    stat_delivered: 'تم التوصيل',
+    stat_delivery: 'قيد التسليم',
+    stat_delivered: 'تم التسليم',
     stat_ca: 'الإيرادات المحصلة',
     stat_all_sources: 'جميع المصادر',
     stat_to_assign: 'للتكليف',
@@ -4177,8 +4228,8 @@ const TRANSLATIONS = {
     stat_rate: 'النسبة',
     btn_new_cmd: '＋ طلب جديد',
     btn_sync: '🔄 مزامنة الآن',
-    btn_assign_all: '⚡ تكليف الكل للوكلاء',
-    btn_send_carrier: '🚀 إرسال المؤكدة → شركة التوصيل',
+    btn_assign_all: '⚡ تكليف الكل للمؤكدين',
+    btn_send_carrier: '🚀 إرسال إلى شركة التوصيل',
     btn_refresh_track: '🔄 تحديث التتبع',
     btn_add_agent: '＋ إضافة مؤكد',
     btn_add_produit: '＋ إضافة منتج',
@@ -4186,11 +4237,11 @@ const TRANSLATIONS = {
     btn_cancel: 'إلغاء',
     btn_connect: '🔌 ربط Supabase',
     btn_export_csv: '⬇ تصدير CSV',
-    btn_export_all: '⬇ نسخة احتياطية JSON',
-    btn_import: '⬆ استيراد JSON',
+    btn_export_all: '⬇ نسخة احتياطية',
+    btn_import: '⬆ استيراد',
     btn_reset: '🗑 إعادة تعيين',
     btn_track: '📡 تتبع',
-    btn_print_all: '🖨️ طباعة كل الوصولات',
+    btn_print_all: '🖨️ طباعة الوصولات',
     th_id: 'الرقم',
     th_date: 'التاريخ',
     th_client: 'العميل',
@@ -4198,7 +4249,7 @@ const TRANSLATIONS = {
     th_wilaya: 'الولاية',
     th_product: 'المنتج',
     th_amount: 'المبلغ',
-    th_agent: 'الوكيل',
+    th_agent: 'المؤكد',
     th_attempts: 'المحاولات',
     th_status: 'الحالة',
     th_actions: 'الإجراءات',
@@ -4207,50 +4258,57 @@ const TRANSLATIONS = {
     th_phase: 'المرحلة',
     th_last_update: 'آخر تحديث',
     th_conf_rate: 'نسبة التأكيد',
-    th_deliv_rate: 'نسبة التوصيل',
+    th_deliv_rate: 'نسبة التسليم',
     th_return_rate: 'نسبة الإرجاع',
-    th_ca: 'الإيرادات DZD',
+    th_ca: 'الإيرادات',
     th_sku: 'الرمز',
     th_price: 'سعر COD',
     th_orders: 'الطلبات',
-    th_total: 'الإجمالي DZD',
+    th_total: 'الإجمالي',
     th_last_order: 'آخر طلب',
     statut_new: 'جديد',
     statut_assigned: 'مُكلَّف',
-    statut_confirmed: 'مؤكد',
-    statut_cancelled: 'ملغى',
+    statut_confirmed: 'مؤكد ✅',
+    statut_cancelled: 'ملغى ❌',
     statut_no_answer: 'لا رد',
     statut_ready: 'جاهز للشحن',
     statut_shipped: 'تم الشحن',
-    statut_out: 'خرج للتوصيل',
-    statut_delivering: 'قيد التوصيل',
-    statut_delivered: 'تم التوصيل',
+    statut_out: 'خرج للتسليم',
+    statut_delivering: 'قيد التسليم',
+    statut_delivered: 'تم التسليم ✅',
     statut_returned: 'مُرجَع',
     statut_return_transit: 'إرجاع في الطريق',
+    statut_attempt1: 'محاولة 1 📞',
+    statut_attempt2: 'محاولة 2 📞',
+    statut_attempt3: 'محاولة 3 📞',
+    statut_attempt4: 'محاولة 4 📞',
+    statut_attempt5: 'محاولة 5 📞',
+    statut_postponed: 'مؤجل 🔄',
+    statut_fake: 'طلب وهمي ⛔',
     lbl_client_name: 'اسم العميل',
-    lbl_phone: 'الهاتف',
+    lbl_phone: 'رقم الهاتف',
     lbl_wilaya: 'الولاية',
     lbl_commune: 'البلدية',
-    lbl_address: 'عنوان التوصيل',
+    lbl_address: 'عنوان التسليم',
     lbl_product: 'المنتج',
     lbl_qty: 'الكمية',
-    lbl_amount: 'مبلغ COD (DZD)',
-    lbl_delivery_fee: 'رسوم التوصيل (DZD)',
-    lbl_agent: 'تكليف وكيل',
+    lbl_amount: 'مبلغ COD (دج)',
+    lbl_delivery_fee: 'رسوم التوصيل (دج)',
+    lbl_agent: 'تكليف مؤكد',
     lbl_notes: 'ملاحظات',
     lbl_shop_name: 'اسم المتجر',
-    lbl_commission: 'عمولة الوكلاء (% افتراضي)',
+    lbl_commission: 'عمولة المؤكدين (%)',
     lbl_sheet_url: 'رابط Google Sheet',
     lbl_sync_interval: 'فترة المزامنة (دقائق)',
     lbl_api_key: 'مفتاح API',
     empty_orders: 'لا توجد طلبات',
-    empty_agents: 'لا يوجد وكلاء',
+    empty_agents: 'لا يوجد مؤكدون',
     empty_products: 'لا توجد منتجات',
     empty_notifs: 'لا توجد إشعارات',
     empty_imports: 'لا يوجد استيراد معلق — زامن Google Sheet',
     empty_shipping: 'لا توجد طرود في الطريق',
     login_title: 'تسجيل الدخول',
-    login_email: 'البريد أو تسجيل الدخول',
+    login_email: 'البريد أو اسم المستخدم',
     login_pwd: 'كلمة المرور',
     login_btn: '🔑 دخول',
     login_demo: 'وضع تجريبي',
@@ -4262,23 +4320,26 @@ const TRANSLATIONS = {
     all_statuts: 'جميع الحالات',
     all_carriers: 'جميع الناقلين',
     all_phases: 'جميع المراحل',
-    all_agents: 'جميع الوكلاء',
+    all_agents: 'جميع المؤكدين',
     search_placeholder: 'بحث...',
     track_placeholder: 'أدخل رقم الطلب أو رقم التتبع',
     connected: 'متصل',
     not_connected: 'غير متصل',
     not_assigned: 'غير مُكلَّف',
-    logo_sub: 'DZ · v4.0',
+    logo_sub: 'الجزائر · v4.0',
     top_wilayas: 'أهم الولايات',
-    agent_perf: 'أداء الوكلاء',
+    agent_perf: 'أداء المؤكدين',
     top_products: 'أهم المنتجات',
-    carrier_status: 'حالة الناقلين',
+    carrier_status: 'حالة شركات التوصيل',
     recent_orders: 'آخر الطلبات',
     pipeline_title: 'مسار المعالجة',
-    source_sheet: '📋 Sheet',
+    source_sheet: '📋 استيراد',
     source_manual: '✏️ يدوي',
     duplicate_flag: '⚠️ مكرر',
     risky_client: '⚠️ عميل خطر',
+    nav_finances: 'المالية',
+    nav_clients: 'العملاء',
+    nav_notifications: 'الإشعارات',
   },
 
   en: {
@@ -4460,13 +4521,18 @@ function setLang(lang) {
   // 1. Direction HTML globale
   document.documentElement.dir = isAr ? 'rtl' : 'ltr';
   document.documentElement.lang = lang;
-  document.body.dir = isAr ? 'rtl' : 'ltr';
+  document.body.setAttribute('dir', isAr ? 'rtl' : 'ltr');
+  document.body.setAttribute('lang', lang);
 
-  // 2. Police arabe
+  // 2. Police arabe Cairo
   if (isAr) {
-    document.body.style.fontFamily = "'Cairo', 'Syne', sans-serif";
+    document.body.style.fontFamily = "'Cairo', sans-serif";
+    document.querySelector('.sidebar')?.setAttribute('dir', 'rtl');
+    document.querySelector('.main')?.setAttribute('dir', 'rtl');
   } else {
     document.body.style.fontFamily = "'Syne', sans-serif";
+    document.querySelector('.sidebar')?.removeAttribute('dir');
+    document.querySelector('.main')?.removeAttribute('dir');
   }
 
   // 3. CSS RTL complet
@@ -4560,18 +4626,27 @@ function applyTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
     const val = t(key);
+    if (!val) return;
     if (el.tagName === 'INPUT' && el.placeholder !== undefined) {
       el.placeholder = val;
+    } else if (el.tagName === 'OPTION') {
+      el.textContent = val;
     } else {
       el.textContent = val;
     }
   });
   // Update PAGE_META with translated values
   updatePageMeta();
-  // Update CONF_STATUTS and DELIV_PHASES
+  // Update CONF_STATUTS labels
   updateStatusLabels();
-  // Re-render current page
+  // Re-render page
   renderAll();
+  // Update current page title immediately
+  const currentPage = document.querySelector('.page.on')?.id?.replace('pg-', '');
+  if (currentPage && PAGE_META[currentPage]) {
+    document.getElementById('page-title').textContent = PAGE_META[currentPage][0];
+    document.getElementById('page-sub').textContent = PAGE_META[currentPage][1];
+  }
 }
 
 function updatePageMeta() {
@@ -4611,8 +4686,8 @@ function injectLangSwitcher() {
       🇫🇷 FR
     </button>
     <button class="lang-btn" data-lang="ar" onclick="setLang('ar')"
-      style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;color:var(--text);font-family:var(--font);transition:.15s;opacity:${currentLang==='ar'?'1':'0.4'};border-color:${currentLang==='ar'?'var(--accent)':'var(--border)'}">
-      🇩🇿 AR
+      style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--text);font-family:'Cairo','Syne',sans-serif;transition:.15s;opacity:${currentLang==='ar'?'1':'0.4'};border-color:${currentLang==='ar'?'var(--accent)':'var(--border)'}">
+      🇩🇿 عربية
     </button>
     <button class="lang-btn" data-lang="en" onclick="setLang('en')"
       style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;color:var(--text);font-family:var(--font);transition:.15s;opacity:${currentLang==='en'?'1':'0.4'};border-color:${currentLang==='en'?'var(--accent)':'var(--border)'}">
@@ -5669,19 +5744,9 @@ async function syncProductSheet(prodId) {
       const rowIndex = i + 1;
       if (existingRows.has(rowIndex)) return;
 
-      // Nom client — colonne E (index 4) en priorité absolue
-      const nomCol2 = (colMap.nom !== undefined && colMap.nom >= 0) ? colMap.nom : 4;
-      let nomRaw = (row[nomCol2] || '').toString().trim();
-      if (!nomRaw) {
-        for (const col of [3, 5, 2, 6, 1, 7]) {
-          if (col === colMap.tel || col >= row.length) continue;
-          const val = (row[col] || '').toString().trim();
-          if (val && val.length > 1 && val.length < 60 && !/^\d{7,}$/.test(val) && !val.includes('@') && !val.includes('http')) {
-            nomRaw = val; break;
-          }
-        }
-      }
-      const nom = nomRaw || 'Client';
+      // ── NOM : colonne configurée (défaut E = index 4)
+      const nomIdx2 = (colMap.nom >= 0) ? colMap.nom : 4;
+      const nom = (row[nomIdx2] || '').toString().trim() || 'Client';
 
       // ── TÉLÉPHONE
       const telRaw = colMap.tel >= 0 ? (row[colMap.tel] || '').toString().trim() : '';
@@ -5710,9 +5775,11 @@ async function syncProductSheet(prodId) {
         if (diff < 48 * 3600 * 1000) { dupes++; }
       }
 
+      const noteVal2 = colMap.note >= 0 ? (row[colMap.note] || '').toString().trim() : '';
       const cmd = newCmd({
         nom, tel, wilaya, adresse,
-        produit: prod.nom, // nom du produit = nom du produit configuré
+        notes: noteVal2,
+        produit: prod.nom,
         montant, qte: prod.qteDefault || 1,
         source: 'gsheet', sheetRow: rowIndex,
         isDuplicate: !!existingTel,
