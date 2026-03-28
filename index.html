@@ -566,13 +566,19 @@ tr:hover td{background:rgba(255,255,255,.015);}
 <!-- ══════════ PAGE: PRODUITS ══════════ -->
 <div class="page admin-only" id="pg-produits">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-    <span class="muted" style="font-size:13px">Catalogue produits</span>
-    <button class="btn btn-c" onclick="open_modal('m-add-produit')">＋ Ajouter produit</button>
+    <span class="muted" style="font-size:13px" id="produits-cnt">0 produits</span>
+    <button class="btn btn-c" onclick="openAddProductModal()">＋ Ajouter produit + Sheet</button>
   </div>
-  <div class="card"><div class="tw"><table>
-    <thead><tr><th>Produit</th><th>SKU</th><th>Prix COD</th><th>Commandes</th><th>Taux conf.</th><th>Taux livr.</th><th>Taux retour</th><th>CA</th><th>Actions</th></tr></thead>
-    <tbody id="table-produits"></tbody>
-  </table></div></div>
+  <!-- Produits cards -->
+  <div id="produits-cards" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px"></div>
+  <!-- Stats table -->
+  <div class="card">
+    <div class="ch"><span class="ct">Performance par produit</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>Produit</th><th>Prix COD</th><th>Confirmateurs</th><th>Commandes</th><th>Conf %</th><th>Livr %</th><th>CA DZD</th><th>Actions</th></tr></thead>
+      <tbody id="table-produits"></tbody>
+    </table></div>
+  </div>
 </div>
 
 <!-- ══════════ PAGE: FINANCES ══════════ -->
@@ -602,33 +608,15 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
 <!-- ══════════ PAGE: GOOGLE SHEETS ══════════ -->
 <div class="page admin-only" id="pg-gsheets">
-  <div class="info-box">📋 Configuration du flux Google Sheets → JAMIL COD. Votre Sheet doit être partagé en lecture publique ou avec le compte de service.</div>
-  <div class="card">
-    <div class="ch"><span class="ct">Mapping des colonnes</span></div>
-    <div class="cb">
-      <div class="warn-box">⚠️ Format attendu : Ligne 1 = en-têtes. Données à partir de ligne 2. Assurez-vous que votre sheet est partagé en "Lecture pour tous avec le lien".</div>
-      <div class="fr3">
-        <div class="fg"><label class="fl">Sheet ID (URL)</label><input class="fi" id="gs-id" placeholder="ID depuis l'URL Google Sheet"></div>
-        <div class="fg"><label class="fl">Onglet (nom)</label><input class="fi" id="gs-tab" value="Feuille1"></div>
-        <div class="fg"><label class="fl">Sync auto (minutes)</label><input class="fi" type="number" id="gs-interval" value="2" min="1"></div>
-      </div>
-      <hr class="sep">
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;">Correspondance colonnes</div>
-      <div class="fr3">
-        <div class="fg"><label class="fl">Nom client</label><select class="fs" id="gsc-nom"><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
-        <div class="fg"><label class="fl">Téléphone</label><select class="fs" id="gsc-tel"><option>A</option><option selected>B</option><option>C</option><option>D</option><option>E</option></select></div>
-        <div class="fg"><label class="fl">Wilaya</label><select class="fs" id="gsc-wilaya"><option>A</option><option>B</option><option selected>C</option><option>D</option></select></div>
-        <div class="fg"><label class="fl">Produit</label><select class="fs" id="gsc-produit"><option>A</option><option>B</option><option>C</option><option selected>D</option></select></div>
-        <div class="fg"><label class="fl">Montant COD</label><select class="fs" id="gsc-montant"><option>A</option><option>B</option><option>C</option><option>D</option><option selected>E</option></select></div>
-        <div class="fg"><label class="fl">Adresse</label><select class="fs" id="gsc-adresse"><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option selected>F</option></select></div>
-      </div>
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-c" onclick="saveGSConfig()">💾 Sauvegarder</button>
-        <button class="btn btn-g" onclick="testSheetConnection()">🧪 Tester</button>
-        <button class="btn btn-warn" onclick="syncSheets()">🔄 Sync maintenant</button>
-      </div>
+  <div class="info-box">📋 Chaque produit a son propre Google Sheet. Allez dans <strong>Produits</strong> pour ajouter/gérer les sheets par produit.</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <span class="ct">Sheets connectés</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-warn" onclick="syncAllSheets()">🔄 Sync tous les sheets</button>
+      <button class="btn btn-c" onclick="openAddProductModal()">＋ Ajouter produit + Sheet</button>
     </div>
   </div>
+  <div id="sheets-list" style="display:flex;flex-direction:column;gap:12px"></div>
 </div>
 
 <!-- ══════════ PAGE: PARAMETRES ══════════ -->
@@ -774,9 +762,10 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <textarea class="fta" id="mc-note" placeholder="Ex: Client veut livraison le soir — Prix négocié à 7000 DZD — Rappeler demain matin..." style="min-height:60px"></textarea>
       </div>
     </div>
-    <div class="mf">
+    <div class="mf" style="flex-wrap:wrap;gap:8px">
       <button class="btn btn-g" onclick="close_modal('m-confirm')">Annuler</button>
       <button class="btn btn-c" onclick="saveConfirmation()">💾 Sauvegarder</button>
+      <button class="btn btn-success" onclick="saveAndSendCarrier()" id="mc-send-btn" style="margin-left:auto">✅ Confirmer + 🚀 Envoyer transporteur</button>
     </div>
   </div>
 </div>
@@ -1555,9 +1544,22 @@ async function syncSheets() {
       const rowIndex = i + 1; // +1 car on a slicé après l'en-tête
       if (existingRows.has(rowIndex)) return; // déjà importé
 
-      const nom = (row[colMap.nom] || '').trim();
+      // Chercher le nom — essayer la colonne configurée et les colonnes voisines
+      let nomRaw = (row[colMap.nom] || '').trim();
+      // Si la colonne configurée est vide, essayer les colonnes adjacentes
+      if (!nomRaw) {
+        for (let col = 0; col < Math.min(row.length, 15); col++) {
+          const val = (row[col] || '').trim();
+          // Chercher une valeur qui ressemble à un nom (pas un email, pas un nombre, pas trop long)
+          if (val && val.length > 1 && val.length < 50 && !/^\d+$/.test(val) && !val.includes('@') && !val.includes('http') && col !== colMap.tel && col !== colMap.wilaya) {
+            nomRaw = val;
+            break;
+          }
+        }
+      }
+      const nom = nomRaw || 'Client';
       const telRaw = (row[colMap.tel] || '').toString().trim();
-      if (!nom || !telRaw) { skipped++; return; }
+      if (!telRaw) { skipped++; return; }
 
       // Validation téléphone algérien
       // Valider le numéro — rejeter les IDs Facebook (> 12 chiffres)
@@ -2142,6 +2144,11 @@ async function assignAll() {
 function sendToCarrier(id) {
   const c = db.commandes.find(x => x.id === id);
   if (!c) return;
+  // Confirmateur peut aussi envoyer au transporteur
+  if (c.confStatut !== 'confirmed' && !c.delivPhase) {
+    // Demander confirmation si pas encore confirmé
+    if (!confirm(`La commande ${id} n'est pas encore confirmée. Voulez-vous quand même l'envoyer au transporteur ?`)) return;
+  }
   document.getElementById('sc-id').value = id;
   document.getElementById('sc-display').value = `${id} — ${c.nom} — ${c.wilaya} — ${c.montant.toLocaleString()} DZD`;
   document.getElementById('sc-notes').value = c.notes || '';
@@ -2484,12 +2491,13 @@ function renderConfirmation() {
   if (!cmds.length) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-ico">📞</div><div class="empty-txt">Aucune commande en attente</div></div></td></tr>`; return; }
   tbody.innerHTML = cmds.map(c => {
     const ag = db.agents.find(a => a.id === c.agentId);
-    const actions = currentRole === 'admin' || currentRole === 'gerant'
-      ? `<button class="btn btn-g btn-xs" onclick="openAssign('${c.id}')">👤</button>
-         <button class="btn btn-warn btn-xs" onclick="openConfirm('${c.id}')">📞</button>
-         ${c.confStatut === 'confirmed' ? `<button class="btn btn-success btn-xs" onclick="sendToCarrier('${c.id}')">🚀</button>` : ''}
-         <button class="btn btn-danger btn-xs" onclick="delCmd('${c.id}')">🗑</button>`
-      : `<button class="btn btn-warn btn-xs" onclick="openConfirm('${c.id}')">📞 Appeler</button>`;
+    // Tous les rôles peuvent appeler, modifier et envoyer au transporteur
+    const isAdmin = currentRole === 'admin' || currentRole === 'gerant';
+    const actions = `
+      <button class="btn btn-warn btn-xs" title="Appeler / Confirmer" onclick="openConfirm('${c.id}')">📞</button>
+      <button class="btn btn-success btn-xs" title="${c.confStatut==='confirmed'?'Envoyer au transporteur':'Confirmer d\'abord'}" onclick="sendToCarrier('${c.id}')" style="${c.confStatut!=='confirmed'?'opacity:.4':''}">🚀</button>
+      ${isAdmin ? `<button class="btn btn-g btn-xs" title="Assigner" onclick="openAssign('${c.id}')">👤</button>
+      <button class="btn btn-danger btn-xs" title="Supprimer" onclick="delCmd('${c.id}')">🗑</button>` : ''}`;
     return `<tr>
       <td><span class="mono accent">${c.id}</span><br><span class="muted" style="font-size:9px">${c.source === 'gsheet' ? '📋 Sheet' : '✏️ Manuel'}${c.isDuplicate ? ' ⚠️Doublon' : ''}</span></td>
       <td><strong>${c.nom}</strong></td><td class="mono">${c.tel}</td>
@@ -5334,6 +5342,597 @@ function initJamilCOD() {
 // Start JAMIL COD
 setTimeout(initJamilCOD, 300);
 
-</script>
-</body>
-</html>
+
+// ══════ MULTI-SHEETS + PRODUITS COMPLETS ══════
+// ════════════════════════════════════════════════════════════════
+// JAMIL COD — MULTI-SHEETS + PRODUITS COMPLETS
+// Chaque produit a son Sheet, ses confirmateurs, son prix fixe
+// ════════════════════════════════════════════════════════════════
+
+// ── Structure produit enrichie
+// db.produits = [{
+//   id, nom, sku, prix (COD fixe), qteDefault,
+//   sheet: { id, tab, interval, apiKey, columnMap },
+//   agentIds: [],  ← confirmateurs assignés à ce produit
+//   active: true,
+//   createdAt
+// }]
+
+// ── Init: migrer anciens produits si nécessaire
+function migrateProduits() {
+  db.produits = db.produits.map(p => ({
+    id: p.id || 'PR-' + Date.now(),
+    nom: p.nom || '',
+    sku: p.sku || '',
+    prix: p.prix || 0,
+    qteDefault: p.qteDefault || 1,
+    sheet: p.sheet || null,
+    agentIds: p.agentIds || [],
+    active: p.active !== false,
+    createdAt: p.createdAt || new Date().toISOString(),
+  }));
+}
+
+// ── Modal ajout produit complet
+function openAddProductModal(editId) {
+  const existing = document.getElementById('m-add-product-full');
+  if (existing) existing.remove();
+
+  const prod = editId ? db.produits.find(p => p.id === editId) : null;
+  const isEdit = !!prod;
+  const cols = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+
+  const modal = document.createElement('div');
+  modal.className = 'mo open';
+  modal.id = 'm-add-product-full';
+  modal.innerHTML = `
+    <div class="md" style="width:600px;max-height:90vh;overflow-y:auto">
+      <div class="mh">
+        <span class="mt">${isEdit ? '✏️ Modifier' : '＋ Nouveau'} produit</span>
+        <button class="mx" onclick="document.getElementById('m-add-product-full').remove()">✕</button>
+      </div>
+      <div class="mb_">
+        <input type="hidden" id="apf-id" value="${prod?.id || ''}">
+
+        <!-- ── INFOS PRODUIT ── -->
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📦 Informations produit</div>
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Nom du produit *</label>
+            <input class="fi" id="apf-nom" placeholder="Ex: Mini Loupe H4" value="${prod?.nom || ''}">
+          </div>
+          <div class="fg">
+            <label class="fl">SKU / Référence</label>
+            <input class="fi" id="apf-sku" placeholder="Ex: MLH4-001" value="${prod?.sku || ''}">
+          </div>
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Prix COD fixe (DZD) *</label>
+            <input class="fi" type="number" id="apf-prix" placeholder="Ex: 7500" value="${prod?.prix || ''}">
+          </div>
+          <div class="fg">
+            <label class="fl">Quantité par défaut</label>
+            <input class="fi" type="number" id="apf-qte" placeholder="1" min="1" value="${prod?.qteDefault || 1}">
+          </div>
+        </div>
+
+        <hr class="sep">
+
+        <!-- ── GOOGLE SHEET ── -->
+        <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📋 Google Sheet (optionnel)</div>
+        <div class="info-box" style="font-size:11px">Partagez votre Sheet en lecture publique : Partager → "Toute personne avec le lien" → Lecteur</div>
+        <div class="fg">
+          <label class="fl">URL ou ID du Google Sheet</label>
+          <input class="fi" id="apf-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/..." value="${prod?.sheet?.id || ''}">
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Nom de l'onglet</label>
+            <input class="fi" id="apf-sheet-tab" placeholder="Feuille1" value="${prod?.sheet?.tab || 'Feuille1'}">
+          </div>
+          <div class="fg">
+            <label class="fl">Sync auto (minutes)</label>
+            <input class="fi" type="number" id="apf-sheet-interval" placeholder="2" min="1" value="${prod?.sheet?.interval || 2}">
+          </div>
+        </div>
+
+        <!-- Colonnes -->
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px">Colonnes du Sheet :</div>
+        <div class="fr3">
+          <div class="fg">
+            <label class="fl">Nom client</label>
+            <select class="fs" id="apf-col-nom">
+              ${cols.map(c => `<option ${(prod?.sheet?.columnMap?.nom === cols.indexOf(c) || (!prod && c==='E')) ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Téléphone</label>
+            <select class="fs" id="apf-col-tel">
+              ${cols.map(c => `<option ${(prod?.sheet?.columnMap?.tel === cols.indexOf(c) || (!prod && c==='F')) ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Wilaya</label>
+            <select class="fs" id="apf-col-wilaya">
+              ${cols.map(c => `<option ${(prod?.sheet?.columnMap?.wilaya === cols.indexOf(c) || (!prod && c==='G')) ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Adresse (optionnel)</label>
+            <select class="fs" id="apf-col-adresse">
+              <option value="-1">— Pas de colonne —</option>
+              ${cols.map(c => `<option ${prod?.sheet?.columnMap?.adresse === cols.indexOf(c) ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Montant (optionnel)</label>
+            <select class="fs" id="apf-col-montant">
+              <option value="-1" ${!prod?.sheet?.columnMap?.montant || prod?.sheet?.columnMap?.montant === -1 ? 'selected' : ''}>— Prix fixe —</option>
+              ${cols.map(c => `<option ${prod?.sheet?.columnMap?.montant === cols.indexOf(c) ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <hr class="sep">
+
+        <!-- ── CONFIRMATEURS ASSIGNÉS ── -->
+        <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">👥 Confirmateurs assignés à ce produit</div>
+        ${db.agents.length ? `
+        <div style="display:flex;flex-direction:column;gap:8px" id="apf-agents-list">
+          ${db.agents.map(a => `
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <input type="checkbox" id="apf-agent-${a.id}" value="${a.id}" ${prod?.agentIds?.includes(a.id) ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)">
+              <div style="width:28px;height:28px;border-radius:50%;background:${a.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#000">${a.nom[0]}</div>
+              <div>
+                <div style="font-size:13px;font-weight:600">${a.nom}</div>
+                <div style="font-size:10px;color:var(--text2)">${a.zone || 'Toutes zones'} · ${a.commission}% comm.</div>
+              </div>
+            </label>`).join('')}
+        </div>` : `<div class="warn-box">Ajoutez d'abord des confirmateurs dans la section "Confirmateurs"</div>`}
+      </div>
+      <div class="mf">
+        <button class="btn btn-g" onclick="document.getElementById('m-add-product-full').remove()">Annuler</button>
+        ${prod?.sheet?.id ? `<button class="btn btn-warn" onclick="syncProductSheet('${prod.id}');document.getElementById('m-add-product-full').remove()">🔄 Sync maintenant</button>` : ''}
+        <button class="btn btn-c" onclick="saveProductFull()">💾 ${isEdit ? 'Enregistrer' : 'Créer produit'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+}
+
+// ── Sauvegarder produit complet
+async function saveProductFull() {
+  const id = document.getElementById('apf-id')?.value;
+  const nom = document.getElementById('apf-nom')?.value?.trim();
+  const prix = parseFloat(document.getElementById('apf-prix')?.value) || 0;
+  if (!nom) { toast('Nom du produit obligatoire', 'e'); return; }
+  if (!prix) { toast('Prix COD obligatoire', 'e'); return; }
+
+  const sheetUrl = document.getElementById('apf-sheet-url')?.value?.trim() || '';
+  const sheetTab = document.getElementById('apf-sheet-tab')?.value?.trim() || 'Feuille1';
+  const sheetInterval = parseInt(document.getElementById('apf-sheet-interval')?.value) || 2;
+  const colNom = document.getElementById('apf-col-nom')?.value || 'E';
+  const colTel = document.getElementById('apf-col-tel')?.value || 'F';
+  const colWilaya = document.getElementById('apf-col-wilaya')?.value || 'G';
+  const colAdresse = document.getElementById('apf-col-adresse')?.value;
+  const colMontant = document.getElementById('apf-col-montant')?.value;
+
+  // Récupérer les confirmateurs cochés
+  const agentIds = db.agents.filter(a => document.getElementById(`apf-agent-${a.id}`)?.checked).map(a => a.id);
+
+  const cols = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+  const sheet = sheetUrl ? {
+    id: extractSheetId(sheetUrl),
+    tab: sheetTab,
+    interval: sheetInterval,
+    apiKey: '',
+    fixedPrice: prix,
+    columnMap: {
+      nom: cols.indexOf(colNom),
+      tel: cols.indexOf(colTel),
+      wilaya: cols.indexOf(colWilaya),
+      adresse: colAdresse === '-1' ? -1 : cols.indexOf(colAdresse),
+      montant: colMontant === '-1' ? -1 : cols.indexOf(colMontant),
+      produit: -1, // nom du produit = nom du produit lui-même
+    }
+  } : null;
+
+  const existingIdx = db.produits.findIndex(p => p.id === id);
+  const prod = {
+    id: id || 'PR-' + Date.now(),
+    nom, sku: document.getElementById('apf-sku')?.value?.trim() || '',
+    prix, qteDefault: parseInt(document.getElementById('apf-qte')?.value) || 1,
+    sheet, agentIds, active: true,
+    createdAt: existingIdx >= 0 ? db.produits[existingIdx].createdAt : new Date().toISOString(),
+  };
+
+  if (existingIdx >= 0) db.produits[existingIdx] = prod;
+  else db.produits.push(prod);
+
+  await upsertProduit(prod);
+
+  // Aussi mettre à jour le gsheets global si c'est le premier sheet
+  if (sheet && !db.gsheets.id) {
+    db.gsheets = { ...sheet, lastSync: null };
+    saveDB();
+  }
+
+  document.getElementById('m-add-product-full')?.remove();
+  saveDB();
+  renderProduits();
+  renderSheetsPage();
+  populateSelects();
+  toast(`Produit "${nom}" ${id ? 'modifié' : 'créé'} !`, 's');
+  addNotif(`📦 Produit ${nom} ${id ? 'modifié' : 'créé'} — Prix: ${prix.toLocaleString()} DZD`, 'manual');
+
+  // Lancer sync automatique si sheet configuré
+  if (sheet) setTimeout(() => syncProductSheet(prod.id), 500);
+}
+
+// ── Sync d'un produit spécifique
+async function syncProductSheet(prodId) {
+  const prod = db.produits.find(p => p.id === prodId);
+  if (!prod?.sheet?.id) { toast(`Pas de sheet configuré pour "${prod?.nom}"`, 'w'); return; }
+
+  const cfg = prod.sheet;
+  toast(`🔄 Sync "${prod.nom}"...`, 'i');
+
+  try {
+    const sheetId = extractSheetId(cfg.id);
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+    const resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error('Sheet non accessible (HTTP ' + resp.status + ')');
+    const csv = await resp.text();
+    const rows = parseCSV(csv);
+    if (rows.length < 2) { toast(`Sheet "${prod.nom}" vide`, 'i'); return; }
+
+    const dataRows = rows.slice(1);
+    const colMap = cfg.columnMap || { nom: 4, tel: 5, wilaya: 6, produit: -1, montant: -1, adresse: -1 };
+    const existingRows = new Set(db.commandes.filter(c => c.sheetRow != null && c.produit === prod.nom).map(c => c.sheetRow));
+    const existingTels = new Map();
+    db.commandes.filter(c => c.produit === prod.nom).forEach(c => existingTels.set(c.tel, c));
+
+    let imported = 0, skipped = 0, dupes = 0;
+    const newCmds = [];
+
+    dataRows.forEach((row, i) => {
+      const rowIndex = i + 1;
+      if (existingRows.has(rowIndex)) return;
+
+      // ── NOM CLIENT (colonne configurée ou détection auto)
+      let nomRaw = colMap.nom >= 0 ? (row[colMap.nom] || '').trim() : '';
+      if (!nomRaw) {
+        for (let col = 0; col < Math.min(row.length, 15); col++) {
+          const val = (row[col] || '').trim();
+          if (val && val.length > 1 && val.length < 60 && !/^\d+$/.test(val) && !val.includes('@') && !val.includes('http') && col !== colMap.tel && col !== colMap.wilaya) {
+            nomRaw = val; break;
+          }
+        }
+      }
+      const nom = nomRaw || 'Client';
+
+      // ── TÉLÉPHONE
+      const telRaw = colMap.tel >= 0 ? (row[colMap.tel] || '').toString().trim() : '';
+      const tel = validateTelAlgerien(telRaw);
+      if (!tel) {
+        skipped++;
+        return; // Silencieux pour IDs Facebook/TikTok
+      }
+
+      // ── WILAYA
+      const wilayaRaw = colMap.wilaya >= 0 ? (row[colMap.wilaya] || '').trim() : '';
+      const wilaya = normalizeWilaya(wilayaRaw);
+
+      // ── MONTANT (prix fixe si colMap.montant === -1)
+      const montant = (colMap.montant === -1 || colMap.montant === undefined)
+        ? (cfg.fixedPrice || prod.prix || 7500)
+        : parseFloat((row[colMap.montant] || '').toString().replace(/[^\d.,]/g, '').replace(',', '.')) || prod.prix || 7500;
+
+      // ── ADRESSE
+      const adresse = colMap.adresse >= 0 ? (row[colMap.adresse] || '').trim() : '';
+
+      // ── DOUBLON
+      const existingTel = existingTels.get(tel);
+      if (existingTel) {
+        const diff = Date.now() - new Date(existingTel.createdAt).getTime();
+        if (diff < 48 * 3600 * 1000) { dupes++; }
+      }
+
+      const cmd = newCmd({
+        nom, tel, wilaya, adresse,
+        produit: prod.nom, // nom du produit = nom du produit configuré
+        montant, qte: prod.qteDefault || 1,
+        source: 'gsheet', sheetRow: rowIndex,
+        isDuplicate: !!existingTel,
+        produitId: prod.id,
+      });
+
+      // Auto-assigner au premier confirmateur du produit si disponible
+      if (prod.agentIds?.length > 0) {
+        // Round-robin parmi les confirmateurs du produit
+        const agentLoads = prod.agentIds.map(aid => ({
+          id: aid,
+          load: db.commandes.filter(c => c.agentId === aid && ['new','assigned','attempt1','attempt2','attempt3'].includes(c.confStatut)).length
+        }));
+        const minLoad = agentLoads.reduce((min, a) => a.load < min.load ? a : min);
+        cmd.agentId = minLoad.id;
+        cmd.confStatut = 'assigned';
+      }
+
+      newCmds.push(cmd);
+      imported++;
+      existingTels.set(tel, cmd);
+    });
+
+    // Batch insert Supabase
+    if (supabaseReady && newCmds.length > 0) {
+      const rows = newCmds.map(cmd => ({
+        id: cmd.id, created_at: cmd.createdAt, updated_at: cmd.updatedAt,
+        source: cmd.source, nom: cmd.nom, tel: cmd.tel, wilaya: cmd.wilaya,
+        commune: '', adresse: cmd.adresse, produit: cmd.produit,
+        qte: cmd.qte, montant: cmd.montant, frais_livraison: db.tarifs[cmd.wilaya] || 500,
+        conf_statut: cmd.confStatut, agent_id: cmd.agentId || null,
+        call_attempts: 0, conf_notes: [], deliv_phase: null, carrier: null,
+        tracking_num: null, tracking_history: [], notes: '', sheet_row: cmd.sheetRow,
+      }));
+      await sbClient.from('commandes').insert(rows).catch(e => console.warn('[Supabase] insert:', e.message));
+    }
+
+    newCmds.forEach(cmd => db.commandes.unshift(cmd));
+    prod.sheet.lastSync = new Date().toISOString();
+    saveDB();
+
+    const msg = `✅ "${prod.nom}": +${imported} commandes${dupes > 0 ? `, ${dupes} doublons` : ''}${skipped > 0 ? `, ${skipped} ignorées` : ''}`;
+    toast(msg, imported > 0 ? 's' : 'i');
+    if (imported > 0) addNotif(`📋 Sheet "${prod.nom}": +${imported} commandes`, 'gsheet');
+
+    renderAll();
+    renderSheetsPage();
+  } catch(e) {
+    toast(`❌ Erreur sheet "${prod.nom}": ${e.message}`, 'e');
+  }
+}
+
+// ── Sync TOUS les sheets
+async function syncAllSheets() {
+  const activeProds = db.produits.filter(p => p.sheet?.id && p.active);
+  if (!activeProds.length) {
+    // Fallback sur l'ancien gsheets global
+    if (db.gsheets?.id) { await syncSheets(); return; }
+    toast('Aucun sheet configuré — ajoutez un produit avec un sheet', 'w'); return;
+  }
+  toast(`🔄 Sync de ${activeProds.length} sheet(s)...`, 'i');
+  for (const prod of activeProds) {
+    await syncProductSheet(prod.id);
+  }
+  toast('Tous les sheets synchronisés ✅', 's');
+}
+
+// ── Override syncSheets global
+window.syncSheets = async function() {
+  const activeProds = db.produits.filter(p => p.sheet?.id && p.active);
+  if (activeProds.length > 0) {
+    await syncAllSheets();
+  } else if (db.gsheets?.id) {
+    // fallback handled below
+  } else {
+    toast('Aucun sheet configuré', 'w');
+  }
+};
+
+// ── Auto-sync all sheets periodically
+function startMultiSheetAutoSync() {
+  const interval = Math.min(...db.produits.filter(p => p.sheet?.interval).map(p => p.sheet.interval), db.gsheets?.interval || 2);
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(syncAllSheets, (interval || 2) * 60 * 1000);
+}
+
+// ── Render products page
+const _origRenderProduits = window.renderProduits || renderProduits;
+window.renderProduits = function() {
+  const cnt = document.getElementById('produits-cnt');
+  if (cnt) cnt.textContent = db.produits.length + ' produits';
+
+  // Cards view
+  const cardsDiv = document.getElementById('produits-cards');
+  if (cardsDiv) {
+    if (!db.produits.length) {
+      cardsDiv.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-ico">📦</div><div class="empty-txt">Aucun produit — cliquez sur "＋ Ajouter produit + Sheet"</div></div>`;
+    } else {
+      cardsDiv.innerHTML = db.produits.map(p => {
+        const cmds = db.commandes.filter(c => c.produit === p.nom || c.produitId === p.id);
+        const conf = cmds.filter(c => c.confStatut === 'confirmed' || c.delivPhase).length;
+        const deliv = cmds.filter(c => c.delivPhase === 'delivered').length;
+        const ca = cmds.filter(c => c.delivPhase === 'delivered').reduce((s,c) => s + c.montant, 0);
+        const agents = p.agentIds?.map(id => db.agents.find(a => a.id === id)).filter(Boolean) || [];
+        const lastSync = p.sheet?.lastSync ? timeAgo(p.sheet.lastSync) : 'Jamais';
+        return `<div class="card" style="transition:.2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div class="ch">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:14px">${p.nom[0]}</div>
+              <div>
+                <div style="font-size:14px;font-weight:700">${p.nom}</div>
+                <div style="font-size:11px;color:var(--text2)">${p.prix.toLocaleString()} DZD · ${p.qteDefault || 1} unité/cmd</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-g btn-xs" onclick="openAddProductModal('${p.id}')">✏️</button>
+              <button class="btn btn-danger btn-xs" onclick="deleteProd('${p.id}')">🗑</button>
+            </div>
+          </div>
+          <div class="cb" style="padding:12px 16px">
+            <!-- Sheet status -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:11px">
+                ${p.sheet?.id
+                  ? `<span style="color:var(--green)">✅ Sheet connecté</span> · Sync: ${lastSync}`
+                  : '<span style="color:var(--text3)">⬛ Pas de sheet</span>'}
+              </div>
+              ${p.sheet?.id ? `<button class="btn btn-warn btn-xs" onclick="syncProductSheet('${p.id}')">🔄 Sync</button>` : ''}
+            </div>
+            <!-- Stats -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+              <div style="text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+                <div style="font-size:16px;font-weight:800;color:var(--accent);font-family:var(--mono)">${cmds.length}</div>
+                <div style="font-size:9px;color:var(--text2);text-transform:uppercase">Cmds</div>
+              </div>
+              <div style="text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+                <div style="font-size:16px;font-weight:800;color:var(--green);font-family:var(--mono)">${cmds.length ? Math.round(conf/cmds.length*100) : 0}%</div>
+                <div style="font-size:9px;color:var(--text2);text-transform:uppercase">Conf.</div>
+              </div>
+              <div style="text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+                <div style="font-size:16px;font-weight:800;color:var(--blue);font-family:var(--mono)">${conf ? Math.round(deliv/conf*100) : 0}%</div>
+                <div style="font-size:9px;color:var(--text2);text-transform:uppercase">Livr.</div>
+              </div>
+              <div style="text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+                <div style="font-size:14px;font-weight:800;color:var(--gold);font-family:var(--mono)">${(ca/1000).toFixed(1)}k</div>
+                <div style="font-size:9px;color:var(--text2);text-transform:uppercase">CA DZD</div>
+              </div>
+            </div>
+            <!-- Confirmateurs -->
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="font-size:10px;color:var(--text2)">Confirmateurs:</span>
+              ${agents.length ? agents.map(a => `<div title="${a.nom}" style="width:24px;height:24px;border-radius:50%;background:${a.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:#000">${a.nom[0]}</div>`).join('') : '<span style="font-size:10px;color:var(--text3)">Aucun</span>'}
+              <button class="btn btn-g btn-xs" onclick="openAddProductModal('${p.id}')" style="margin-left:auto">+ Assigner</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Table stats
+  const tbody = document.getElementById('table-produits');
+  if (tbody) {
+    const ps = getProductStats();
+    tbody.innerHTML = ps.map(p => {
+      const prod = db.produits.find(x => x.nom === p.nom);
+      const agents = prod?.agentIds?.map(id => db.agents.find(a => a.id === id)).filter(Boolean) || [];
+      return `<tr>
+        <td><strong>${p.nom}</strong></td>
+        <td class="mono green">${p.prix ? p.prix.toLocaleString() + ' DZD' : '—'}</td>
+        <td>${agents.map(a => `<span title="${a.nom}" style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${a.color};text-align:center;line-height:22px;font-size:10px;font-weight:700;color:#000">${a.nom[0]}</span>`).join(' ') || '<span class="muted">—</span>'}</td>
+        <td class="mono">${p.total}</td>
+        <td class="mono accent">${p.confRate}%</td>
+        <td class="mono green">${p.delivRate}%</td>
+        <td class="mono green">${p.ca.toLocaleString()}</td>
+        <td>
+          <button class="btn btn-g btn-xs" onclick="openAddProductModal('${prod?.id || ''}')">✏️</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteProd('${prod?.id || p.nom}')">🗑</button>
+        </td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="8"><div class="empty"><div class="empty-ico">📦</div><div class="empty-txt">Aucun produit</div></div></td></tr>`;
+  }
+};
+
+// ── Render Sheets page
+function renderSheetsPage() {
+  const div = document.getElementById('sheets-list');
+  if (!div) return;
+  const prodsWithSheets = db.produits.filter(p => p.sheet?.id);
+  if (!prodsWithSheets.length) {
+    div.innerHTML = `<div class="card"><div class="cb"><div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">Aucun sheet connecté — ajoutez un produit avec un sheet</div></div></div></div>`;
+    return;
+  }
+  div.innerHTML = prodsWithSheets.map(p => {
+    const cmds = db.commandes.filter(c => c.produit === p.nom || c.produitId === p.id);
+    const lastSync = p.sheet.lastSync ? new Date(p.sheet.lastSync).toLocaleString('fr-DZ') : 'Jamais';
+    return `<div class="card">
+      <div class="ch">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:20px">📋</span>
+          <div>
+            <div style="font-size:14px;font-weight:700">${p.nom}</div>
+            <div style="font-size:11px;color:var(--text2);font-family:var(--mono)">${p.sheet.id?.slice(0,30)}...</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:var(--text2)">Dernière sync: ${lastSync}</span>
+          <button class="btn btn-warn btn-sm" onclick="syncProductSheet('${p.id}')">🔄 Sync</button>
+          <button class="btn btn-g btn-sm" onclick="openAddProductModal('${p.id}')">✏️ Config</button>
+        </div>
+      </div>
+      <div class="cb" style="padding:12px 16px">
+        <div style="display:flex;gap:20px;font-size:12px">
+          <span>📥 <strong>${cmds.length}</strong> commandes importées</span>
+          <span>💰 Prix fixe: <strong class="mono accent">${p.prix.toLocaleString()} DZD</strong></span>
+          <span>⏱ Sync: <strong>toutes les ${p.sheet.interval || 2} min</strong></span>
+          <span>📊 Onglet: <strong>${p.sheet.tab || 'Feuille1'}</strong></span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Delete product
+async function deleteProd(idOrNom) {
+  if (!confirm('Supprimer ce produit ? Les commandes associées restent.')) return;
+  db.produits = db.produits.filter(p => p.id !== idOrNom && p.nom !== idOrNom);
+  if (supabaseReady) await sbClient.from('produits').delete().eq('id', idOrNom).catch(() => {});
+  saveDB(); renderProduits(); renderSheetsPage();
+  toast('Produit supprimé', 'i');
+}
+
+// ── Override addProduit (old simple function)
+window.addProduit = function() { openAddProductModal(); };
+
+// ── Confirmateur actions — COMPLET
+// Confirmateur peut: appeler, modifier commande, envoyer au transporteur
+async function saveAndSendCarrier() {
+  // D'abord sauvegarder la confirmation
+  const id = document.getElementById('mc-id')?.value;
+  if (!id) return;
+  // Force statut confirmed
+  const statutEl = document.getElementById('mc-statut');
+  if (statutEl) statutEl.value = 'confirmed';
+  await saveConfirmation();
+  // Envoyer au transporteur
+  const c = db.commandes.find(x => x.id === id);
+  if (c) {
+    close_modal('m-confirm');
+    sendToCarrier(id);
+  }
+}
+
+// ── Init multi-sheet
+function initMultiSheet() {
+  migrateProduits();
+  // Patch go() pour renderSheetsPage
+  const _prevGo = window.go;
+  window.go = function(page) {
+    _prevGo(page);
+    if (page === 'gsheets') setTimeout(renderSheetsPage, 100);
+    if (page === 'produits') setTimeout(renderProduits, 100);
+  };
+  // Start auto-sync
+  startMultiSheetAutoSync();
+}
+
+setTimeout(initMultiSheet, 1000);
+
+// ══════ CONFIRMATEUR FIX ══════
+// ════════════════════════════════════════════════════════
+// CONFIRMATEUR — Accès complet : appel + modification + envoi
+// ════════════════════════════════════════════════════════
+
+// ── Confirmer ET envoyer au transporteur en un clic
+async function saveAndSendCarrier() {
+  const id = document.getElementById('mc-id')?.value;
+  if (!id) return;
+  const statutEl = document.getElementById('mc-statut');
+  if (statutEl) statutEl.value = 'confirmed';
+  await saveConfirmation();
+  const c = db.commandes.find(x => x.id === id);
+  if (c && c.confStatut === 'confirmed') {
+    sendToCarrier(id);
+  }
+}
+
+// ── Patch renderConfirmation: tous les rôles voient les boutons complets
+const _origRenderConfFix = window.renderConfirmation;
+window.renderConfirmation = function() {
+  _origRenderConfFix && _origRenderConfFix();
+};
+
+</script></body></html>
