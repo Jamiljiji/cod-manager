@@ -712,15 +712,17 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
 <!-- CONFIRM / UPDATE STATUS -->
 <div class="mo" id="m-confirm">
-  <div class="md" style="width:480px">
-    <div class="mh"><span class="mt">📞 Mise à jour confirmation</span><button class="mx" onclick="close_modal('m-confirm')">✕</button></div>
+  <div class="md" style="width:540px">
+    <div class="mh"><span class="mt">📞 Confirmation commande</span><button class="mx" onclick="close_modal('m-confirm')">✕</button></div>
     <div class="mb_">
       <input type="hidden" id="mc-id">
       <div class="fg"><label class="fl">Commande</label><input class="fi" id="mc-display" readonly></div>
+
+      <!-- Résultat appel -->
       <div class="fg">
         <label class="fl">Résultat appel *</label>
         <select class="fs" id="mc-statut">
-          <option value="confirmed">✅ Confirmé — Client OK, envoyer en livraison</option>
+          <option value="confirmed">✅ Confirmé — Client OK</option>
           <option value="attempt1">📞 Tentative 1 — Pas de réponse</option>
           <option value="attempt2">📞 Tentative 2 — Pas de réponse</option>
           <option value="attempt3">📞 Tentative 3 — Pas de réponse</option>
@@ -728,16 +730,54 @@ tr:hover td{background:rgba(255,255,255,.015);}
           <option value="attempt5">📞 Tentative 5 — Dernière tentative</option>
           <option value="cancelled">❌ Annulé — Client refuse</option>
           <option value="postponed">🔄 Reporter — Rappeler plus tard</option>
-          <option value="fake">⛔ Fausse commande — Numéro invalide</option>
+          <option value="fake">⛔ Fausse commande</option>
         </select>
       </div>
-      <div class="fg">
-        <label class="fl">Remarque agent *</label>
-        <textarea class="fta" id="mc-note" placeholder="Ex: Client occupé, rappeler à 18h — ou: Mauvais numéro — ou: Client a changé d'avis..."></textarea>
+
+      <!-- Modifications commande -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">✏️ Modifier la commande</div>
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Prix COD (DZD)</label>
+            <input class="fi" type="number" id="mc-montant" placeholder="7500">
+          </div>
+          <div class="fg">
+            <label class="fl">Quantité</label>
+            <input class="fi" type="number" id="mc-qte" placeholder="1" min="1">
+          </div>
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Type livraison</label>
+            <select class="fs" id="mc-deliv-type">
+              <option value="home">🏠 À domicile</option>
+              <option value="stopdesk">🏪 Stop desk</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Wilaya</label>
+            <select class="fs" id="mc-wilaya">
+              <option value="">— Garder actuelle —</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">Adresse exacte</label>
+          <input class="fi" id="mc-adresse" placeholder="Adresse de livraison confirmée">
+        </div>
       </div>
-      <div class="fg"><label class="fl">Adresse confirmée</label><input class="fi" id="mc-adresse" placeholder="Adresse exacte si précisée"></div>
+
+      <!-- Remarque -->
+      <div class="fg">
+        <label class="fl">Remarque confirmateur</label>
+        <textarea class="fta" id="mc-note" placeholder="Ex: Client veut livraison le soir — Prix négocié à 7000 DZD — Rappeler demain matin..." style="min-height:60px"></textarea>
+      </div>
     </div>
-    <div class="mf"><button class="btn btn-g" onclick="close_modal('m-confirm')">Annuler</button><button class="btn btn-c" onclick="saveConfirmation()">💾 Sauvegarder</button></div>
+    <div class="mf">
+      <button class="btn btn-g" onclick="close_modal('m-confirm')">Annuler</button>
+      <button class="btn btn-c" onclick="saveConfirmation()">💾 Sauvegarder</button>
+    </div>
   </div>
 </div>
 
@@ -1520,9 +1560,17 @@ async function syncSheets() {
       if (!nom || !telRaw) { skipped++; return; }
 
       // Validation téléphone algérien
-      // Accepter le numéro même si format non standard
-      const tel = validateTelAlgerien(telRaw) || telRaw.replace(/[\s\-\.]/g, '');
-      if (!tel || tel.length < 6) { skipped++; return; }
+      // Valider le numéro — rejeter les IDs Facebook (> 12 chiffres)
+      const tel = validateTelAlgerien(telRaw);
+      if (!tel) {
+        skipped++;
+        if (telRaw.replace(/\D/g,'').length > 12) {
+          // Silencieux pour les IDs Facebook — pas de notification spam
+        } else {
+          addNotif(`⚠️ Ligne ${rowIndex + 1}: numéro invalide "${telRaw}"`, 'warn');
+        }
+        return;
+      }
 
       // Validation wilaya
       const wilayaRaw = (row[colMap.wilaya] || '').trim();
@@ -1608,33 +1656,22 @@ function extractSheetId(urlOrId) {
 // ── Validation téléphone algérien
 function validateTelAlgerien(tel) {
   if (!tel) return null;
-  // Nettoyer tous les caractères non numériques sauf +
-  let clean = tel.toString().trim();
-  // Supprimer espaces, tirets, points, parenthèses
-  clean = clean.replace(/[\s\-\.\(\)\/]/g, '');
-  // Supprimer +213 ou 00213
-  clean = clean.replace(/^(\+213|00213)/, '0');
-  // Format standard algérien 05/06/07
-  if (/^(05|06|07)\d{8}$/.test(clean)) return clean;
-  // Sans le 0 initial (ex: 555123456 ou 5XXXXXXXX)
-  if (/^(5|6|7)\d{8}$/.test(clean)) return '0' + clean;
-  // Format avec indicatif 213 sans le +/00 (ex: 213555123456)
-  if (/^213(5|6|7)\d{8}$/.test(clean)) return '0' + clean.slice(3);
-  // Numéro à 9 chiffres commençant par 5/6/7
-  if (/^(5|6|7)\d{7,8}$/.test(clean)) return '0' + clean;
-  // Numéro valide mais format différent — accepter quand même
-  // (ex: numéros fixes 021, 023, 031...)
-  if (/^0\d{8,9}$/.test(clean)) return clean;
-  // Si le numéro contient au moins 8 chiffres → accepter
-  const digitsOnly = clean.replace(/\D/g, '');
-  if (digitsOnly.length >= 8 && digitsOnly.length <= 13) {
-    // Normaliser: prendre les 10 derniers chiffres si trop long
-    if (digitsOnly.length > 10) return '0' + digitsOnly.slice(-9);
-    if (digitsOnly.length === 9) return '0' + digitsOnly;
-    return digitsOnly.length === 10 ? digitsOnly : '0' + digitsOnly;
-  }
-  // Accepter quand même si non vide (ne pas bloquer l'import)
-  return clean.length >= 6 ? clean : null;
+  const raw = tel.toString().trim();
+  const digits = raw.replace(/\D/g, '');
+  // Rejeter IDs Facebook/TikTok (> 12 chiffres = pas un vrai numéro)
+  if (digits.length > 12) return null;
+  if (digits.length < 8) return null;
+  // +213 ou 00213
+  if (digits.startsWith('213') && digits.length >= 11) return '0' + digits.slice(3);
+  // Format standard 0770494829
+  if (digits.startsWith('0') && digits.length === 10) return digits;
+  // Sans le 0: 770494829
+  if (digits.length === 9) return '0' + digits;
+  // 8 chiffres → ajouter 0 devant
+  if (digits.length === 8) return '0' + digits;
+  // Autres formats entre 8 et 12 → prendre les 9 derniers
+  if (digits.length >= 8 && digits.length <= 12) return '0' + digits.slice(-9);
+  return null;
 }
 
 // ── Normalisation wilaya
@@ -1997,6 +2034,20 @@ function openConfirm(id) {
   document.getElementById('mc-adresse').value = c.adresse || '';
   document.getElementById('mc-note').value = '';
   document.getElementById('mc-statut').value = 'confirmed';
+  // Pré-remplir les champs modifiables
+  const montantEl = document.getElementById('mc-montant');
+  const qteEl = document.getElementById('mc-qte');
+  const delivEl = document.getElementById('mc-deliv-type');
+  const wilayaEl = document.getElementById('mc-wilaya');
+  if (montantEl) montantEl.value = c.montant || '';
+  if (qteEl) qteEl.value = c.qte || 1;
+  if (delivEl) delivEl.value = c.delivType || 'home';
+  // Populate wilaya select
+  if (wilayaEl) {
+    wilayaEl.innerHTML = '<option value="">— Garder actuelle (' + (c.wilaya||'?') + ') —</option>' +
+      WILAYAS.map(w => `<option value="${w}" ${w===c.wilaya?'selected':''}>${w}</option>`).join('');
+    wilayaEl.value = '';
+  }
   open_modal('m-confirm');
 }
 
@@ -2010,6 +2061,15 @@ async function saveConfirmation() {
   c.confStatut = statut; c.updatedAt = new Date().toISOString();
   c.callAttempts = (c.callAttempts || 0) + 1;
   if (adresse) c.adresse = adresse;
+  // Appliquer les modifications du confirmateur
+  const newMontant = parseFloat(document.getElementById('mc-montant')?.value);
+  const newQte = parseInt(document.getElementById('mc-qte')?.value);
+  const newDelivType = document.getElementById('mc-deliv-type')?.value;
+  const newWilaya = document.getElementById('mc-wilaya')?.value;
+  if (newMontant && newMontant > 0) c.montant = newMontant;
+  if (newQte && newQte > 0) c.qte = newQte;
+  if (newDelivType) c.delivType = newDelivType;
+  if (newWilaya) { c.wilaya = newWilaya; c.fraisLivraison = db.tarifs[newWilaya] || 500; }
   if (!c.confNotes) c.confNotes = [];
   c.confNotes.push({ date: new Date().toISOString(), agentId: currentAgentId || 'admin', statut, note });
 
