@@ -1844,40 +1844,34 @@ function mapYalidineStatus(status) {
 
 // ── ZR EXPRESS API
 async function zrCreateParcel(cmd, cfg) {
-  // ZR Express nouvelle plateforme app.zrexpress.dz
-  const token = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
+  // ZR Express nouvelle API — api.zrexpress.app
+  const apiKey = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
   const tenantId = cfg.tenantId || 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
 
   const payload = {
-    secretKey: token,
-    tenantId: tenantId,
-    // Infos client
-    name: cmd.nom,
-    phone: cmd.tel.replace(/^0/, '+213'),
-    phone2: '',
-    address: cmd.adresse || cmd.wilaya || '',
-    wilaya: cmd.wilaya || '',
-    commune: cmd.commune || cmd.wilaya || '',
-    // Infos colis
-    product: cmd.produit || 'Colis',
+    recipientName: cmd.nom,
+    recipientPhone: cmd.tel.replace(/^0/, '+213'),
+    recipientPhone2: '',
+    recipientAddress: cmd.adresse || cmd.wilaya || '',
+    wilayaId: WILAYA_IDS[cmd.wilaya] || 16,
+    communeName: cmd.commune || cmd.wilaya || '',
+    productName: cmd.produit || 'Colis',
     price: cmd.montant,
-    cod: cmd.montant,
+    codAmount: cmd.montant,
     note: cmd.notes || '',
-    type: cmd.delivType === 'stopdesk' ? 'stopdesk' : 'home',
+    deliveryType: cmd.delivType === 'stopdesk' ? 'StopDesk' : 'Home',
     weight: 1,
-    // Format alternatif
-    nom: cmd.nom,
-    telephone: cmd.tel.replace(/^0/, '+213'),
-    adresse: cmd.adresse || cmd.wilaya || '',
-    prix: cmd.montant,
-    type_envoi: cmd.delivType === 'stopdesk' ? 2 : 1,
+    width: 1,
+    height: 1,
+    length: 1,
+    quantity: cmd.qte || 1,
   };
 
+  // API correcte: api.zrexpress.app avec X-Tenant + X-Api-Key
   const endpoints = [
-    'https://app.zrexpress.dz/api/parcel/create',
-    'https://app.zrexpress.dz/api/v1/parcel/create',
-    'https://app.zrexpress.dz/api/parcels/create',
-    'https://app.zrexpress.dz/api/shipment/create',
+    'https://api.zrexpress.app/api/v1.0/parcels',
+    'https://api.zrexpress.app/api/v1/parcels',
+    'https://api.zrexpress.app/parcels',
   ];
 
   let lastError = '';
@@ -1887,19 +1881,20 @@ async function zrCreateParcel(cmd, cfg) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Secret-Key': token,
-          'X-Tenant-Id': tenantId,
-          'Authorization': 'Bearer ' + token,
           'Accept': 'application/json',
+          'X-Tenant': tenantId,
+          'X-Api-Key': apiKey,
+          'Authorization': 'Bearer ' + apiKey,
         },
         body: JSON.stringify(payload),
       });
       const data = await resp.json().catch(() => ({}));
-      if (resp.ok || data?.id || data?.tracking || data?.code || data?.barcode) {
-        const trackNum = data?.tracking || data?.tracking_number || data?.code || data?.id || data?.barcode || generateTrackingNum('zr_express');
+      if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber) {
+        const trackNum = data?.trackingNumber || data?.tracking_number || data?.tracking || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
+        toast('✅ ZR Express: Colis créé — ' + trackNum, 's');
         return { trackingNum: String(trackNum), raw: data };
       }
-      lastError = 'HTTP ' + resp.status + ': ' + JSON.stringify(data).slice(0, 150);
+      lastError = 'HTTP ' + resp.status + ': ' + JSON.stringify(data).slice(0, 200);
     } catch(e) {
       lastError = e.message;
     }
@@ -1907,29 +1902,23 @@ async function zrCreateParcel(cmd, cfg) {
   throw new Error('ZR Express: ' + lastError);
 }
 
+
 async function zrGetStatus(trackingNum, cfg) {
-  const token = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
+  const apiKey = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
   const tenantId = cfg.tenantId || 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
-  const endpoints = [
-    `https://app.zrexpress.dz/api/parcel/track/${trackingNum}`,
-    `https://app.zrexpress.dz/api/v1/parcel/${trackingNum}`,
-    `https://app.zrexpress.dz/api/shipment/${trackingNum}`,
-  ];
-  for (const ep of endpoints) {
-    try {
-      const resp = await fetch(ep, {
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'X-Secret-Key': token,
-          'X-Tenant-Id': tenantId,
-        }
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        return mapZRStatus(data?.status || data?.last_status || data?.state);
+  try {
+    const resp = await fetch('https://api.zrexpress.app/api/v1.0/parcels/' + trackingNum, {
+      headers: {
+        'X-Tenant': tenantId,
+        'X-Api-Key': apiKey,
+        'Accept': 'application/json',
       }
-    } catch(e) {}
-  }
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      return mapZRStatus(data?.stateName || data?.state || data?.status || data?.currentState);
+    }
+  } catch(e) { console.warn('[ZR Track]', e.message); }
   return null;
 }
 
