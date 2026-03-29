@@ -1932,71 +1932,37 @@ async function zrCreateParcel(cmd, cfg) {
     montant: payload.amount,
   }));
 
-  // Essayer plusieurs proxies CORS gratuits
-  const ZR_URL = 'https://api.zrexpress.app/api/v1/parcels';
-  const proxies = [
-    async () => {
-      // Proxy 1: corsproxy.io
-      const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(ZR_URL), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
-        body: JSON.stringify(payload),
-      });
-      return r;
+  // Service role key — bypass toutes restrictions JWT
+  const SR = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0aHJkc3JvbHpncmlremNzd3BxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDUwNjc3OSwiZXhwIjoyMDkwMDgyNzc5fQ.GmC9GLTlRZyaOCFhK36zuwGymAH8AGGfiaty9TWfWYM';
+
+  const resp = await fetch('https://ythrdsrolzgrikzcswpq.supabase.co/functions/v1/bright-processor', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + SR,
+      'apikey': SR,
     },
-    async () => {
-      // Proxy 2: api.allorigins.win
-      const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(ZR_URL), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
-        body: JSON.stringify(payload),
-      });
-      return r;
-    },
-    async () => {
-      // Proxy 3: Supabase function avec service role
-      const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0aHJkc3JvbHpncmlremNzd3BxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDUwNjc3OSwiZXhwIjoyMDkwMDgyNzc5fQ.placeholder';
-      const r = await fetch('https://ythrdsrolzgrikzcswpq.supabase.co/functions/v1/bright-processor', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey,
-          'apikey': apiKey,
-        },
-        body: JSON.stringify({ token: apiKey, payload }),
-      });
-      return r;
-    },
-  ];
+    body: JSON.stringify({ token: apiKey, payload }),
+  });
 
-  let lastErr = '';
-  for (const proxyFn of proxies) {
-    try {
-      const resp = await proxyFn();
-      const text = await resp.text();
-      console.log('[ZR Express] ← Réponse:', resp.status, text.slice(0, 300));
+  const text = await resp.text();
+  console.log('[ZR Express] ← Réponse:', resp.status, text.slice(0, 300));
 
-      let data = {};
-      try { data = JSON.parse(text); } catch(e) {}
+  let data = {};
+  try { data = JSON.parse(text); } catch(e) {}
 
-      if (data?.secretKey || data?.tenantId) {
-        lastErr = 'Token invalide'; continue;
-      }
-
-      if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber) {
-        const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
-        console.log('[ZR Express] ✅ Colis créé — Tracking:', trackNum);
-        return { trackingNum: String(trackNum), raw: data };
-      }
-
-      lastErr = 'HTTP ' + resp.status + ': ' + text.slice(0, 100);
-    } catch(e) {
-      lastErr = e.message;
-      console.warn('[ZR proxy error]', e.message);
-    }
+  if (data?.secretKey || data?.tenantId) {
+    throw new Error('Token ZR invalide — créez un nouveau jeton sur app.zrexpress.app');
   }
 
-  throw new Error('ZR Express: ' + lastErr);
+  if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber) {
+    const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
+    console.log('[ZR Express] ✅ Colis créé — Tracking:', trackNum);
+    return { trackingNum: String(trackNum), raw: data };
+  }
+
+  const errMsg = data?.message || data?.detail || data?.error || text.slice(0, 200);
+  throw new Error('ZR Express ' + resp.status + ': ' + errMsg);
 }
 
 
