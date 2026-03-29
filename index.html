@@ -516,7 +516,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <div class="card">
     <div class="ch"><span class="ct">File de confirmation</span><span class="muted mono" style="font-size:11px" id="conf-count">0 commandes</span></div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th data-i18n="th_client">Client · Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th style="color:var(--gold);font-weight:800">⭐ Remarque (type voiture)</th><th data-i18n="th_agent">Agent</th><th>Tent.</th><th data-i18n="th_status">Statut</th><th data-i18n="th_actions">Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th data-i18n="th_client">Client · Téléphone</th><th data-i18n="th_wilaya">Wilaya</th><th data-i18n="th_product">Produit</th><th style="color:var(--gold);font-weight:800">⭐ Remarque</th><th data-i18n="th_agent">Agent</th><th>Résultat appel</th><th>Actions</th></tr></thead>
       <tbody id="table-conf"></tbody>
     </table></div>
   </div>
@@ -1369,7 +1369,7 @@ const WILAYA_ALIASES = {
 
 const CARRIERS = {
   yalidine: { name:'Yalidine', icon:'🚚', color:'#00d4ff', fields:['api_key','api_secret','center_id'] },
-  zr_express: { name:'ZR Express', icon:'⚡', color:'#f5c842', fields:['token', 'tenantId'] },
+  zr_express: { name:'ZR Express', icon:'⚡', color:'#f5c842', fields:['token'] },
   maystro: { name:'Maystro', icon:'📦', color:'#10e98c', fields:['api_key','agency_id','phone'] }
 };
 
@@ -1401,6 +1401,7 @@ let db = {
       connected: true,
       token: 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV',
       tenantId: 'e6b652fe-7afc-4e6a-bc18-454008a963b9',
+      api_key: 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV',
       defaultType: 'home'
     },
     maystro:{connected:false}
@@ -1844,15 +1845,14 @@ function mapYalidineStatus(status) {
 
 // ── ZR EXPRESS API
 async function zrCreateParcel(cmd, cfg) {
-  // ZR Express API v1 — format officiel
-  const apiKey = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
-  const tenantId = cfg.tenantId || 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
+  // ZR Express — API officielle app.zrexpress.app
+  // Auth: X-Api-Key dans header (le token/jeton copié depuis la plateforme)
+  const apiKey = (cfg?.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV').trim();
 
-  // Format exact selon documentation ZR Express
   const payload = {
     customer: {
-      customerId: null, // ZR Express va créer le client automatiquement
-      name: cmd.nom,
+      customerId: null,
+      name: cmd.nom || 'Client',
       phone: {
         number1: cmd.tel.startsWith('0') ? '+213' + cmd.tel.slice(1) : cmd.tel,
         number2: null,
@@ -1860,60 +1860,49 @@ async function zrCreateParcel(cmd, cfg) {
       }
     },
     deliveryAddress: {
-      cityTerritoryId: null, // On met null, ZR Express utilise le texte
+      cityTerritoryId: null,
       districtTerritoryId: null,
-      Street: cmd.adresse || cmd.wilaya || '',
+      Street: (cmd.adresse || cmd.commune || cmd.wilaya || '').slice(0, 200),
     },
     orderedProducts: [{
-      name: cmd.produit || 'Colis',
+      name: (cmd.produit || 'Colis').slice(0, 100),
       quantity: cmd.qte || 1,
-      price: cmd.montant,
+      price: cmd.montant || 0,
       weight: 1,
       width: 1,
       height: 1,
       stockType: 'none',
     }],
     deliveryType: cmd.delivType === 'stopdesk' ? 'pickup-point' : 'home',
-    description: cmd.notes || (cmd.produit || 'Colis'),
-    amount: cmd.montant,
-    weight: {
-      weight: 1,
-      dimensionalWeight: 1,
-    },
-    ExternalId: cmd.id,
-    // Infos wilaya en texte pour faciliter
-    wilaya: cmd.wilaya || '',
-    commune: cmd.commune || cmd.wilaya || '',
+    description: (cmd.notes || cmd.produit || 'Colis').slice(0, 200),
+    amount: cmd.montant || 0,
+    weight: { weight: 1, dimensionalWeight: 1 },
+    ExternalId: cmd.id || null,
   };
 
-  try {
-    const resp = await fetch('https://api.zrexpress.app/api/v1/parcels', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer ' + apiKey,
-        'X-Api-Key': apiKey,
-      },
-      body: JSON.stringify(payload),
-    });
+  console.log('[ZR Express] Envoi:', JSON.stringify(payload).slice(0, 300));
 
-    const data = await resp.json().catch(() => ({}));
+  const resp = await fetch('https://api.zrexpress.app/api/v1/parcels', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Api-Key': apiKey,
+      'Authorization': 'Bearer ' + apiKey,
+    },
+    body: JSON.stringify(payload),
+  });
 
-    if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber) {
-      const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
-      toast('✅ ZR Express: Colis créé — ' + trackNum, 's');
-      return { trackingNum: String(trackNum), raw: data };
-    }
+  const data = await resp.json().catch(() => ({}));
+  console.log('[ZR Express] Réponse:', resp.status, JSON.stringify(data).slice(0, 300));
 
-    // Log détaillé pour debug
-    console.error('[ZR Express] Erreur:', resp.status, JSON.stringify(data));
-    throw new Error('ZR Express HTTP ' + resp.status + ': ' + (data?.message || data?.detail || data?.title || JSON.stringify(data).slice(0, 150)));
-
-  } catch(e) {
-    console.error('[ZR Express]', e.message);
-    throw new Error('ZR Express: ' + e.message);
+  if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber || data?.code) {
+    const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
+    return { trackingNum: String(trackNum), raw: data };
   }
+
+  const errMsg = data?.message || data?.detail || data?.title || data?.error || JSON.stringify(data).slice(0, 200);
+  throw new Error('ZR Express ' + resp.status + ': ' + errMsg);
 }
 
 
@@ -2007,8 +1996,17 @@ async function autoSendToCarrier(id, carrier, type = 'home', notes = '') {
 
   saveDB(); renderAll();
 
-  // Appel API réel
-  if (cfg?.connected && cfg?.api_key) {
+  // Appel API réel — ZR Express utilise token pas api_key
+  // ZR Express: toujours connecté avec les credentials intégrés
+  if (carrier === 'zr_express') {
+    if (!cfg) cfg = {};
+    cfg.token = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
+    cfg.tenantId = cfg.tenantId || 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
+    cfg.connected = true;
+  }
+  const hasCredentials = cfg?.connected && (cfg?.api_key || cfg?.token || cfg?.api_id || carrier === 'zr_express');
+
+  if (hasCredentials) {
     try {
       let result;
       if (carrier === 'yalidine') result = await yalidineCreateParcel(c, cfg);
@@ -2222,20 +2220,58 @@ async function saveAssign() {
   toast(`Assigné à ${ag?.nom}`, 's');
 }
 
+// Auto-assign 50/50 équitable entre tous les agents
 async function assignAll() {
   const newCmds = db.commandes.filter(c => c.confStatut === 'new');
   if (!newCmds.length) { toast('Aucune commande à assigner', 'i'); return; }
-  if (!db.agents.length) { toast('Ajoutez des agents d\'abord', 'w'); return; }
-  let i = 0;
+  if (!db.agents.length) { toast('Ajoutez des confirmateurs d\'abord', 'w'); return; }
+
+  // Compter commandes actuelles par agent pour équilibrer
+  const agentLoads = {};
+  db.agents.forEach(a => {
+    agentLoads[a.id] = db.commandes.filter(c =>
+      c.agentId === a.id &&
+      ['assigned','attempt1','attempt2','attempt3','attempt4','attempt5'].includes(c.confStatut)
+    ).length;
+  });
+
   for (const c of newCmds) {
-    const ag = db.agents[i % db.agents.length];
-    c.agentId = ag.id; c.confStatut = 'assigned'; c.updatedAt = new Date().toISOString();
+    // Choisir l'agent avec le moins de commandes (50/50 équitable)
+    const minAgent = db.agents.reduce((min, a) =>
+      (agentLoads[a.id] || 0) < (agentLoads[min.id] || 0) ? a : min
+    );
+    c.agentId = minAgent.id;
+    c.confStatut = 'assigned';
+    c.updatedAt = new Date().toISOString();
+    agentLoads[minAgent.id] = (agentLoads[minAgent.id] || 0) + 1;
     await upsertCommande(c);
-    i++;
   }
   saveDB(); renderAll();
-  toast(`${newCmds.length} commandes auto-assignées`, 's');
-  addNotif(`⚡ ${newCmds.length} commandes auto-assignées`, 'auto');
+  toast(`✅ ${newCmds.length} commandes réparties 50/50 entre ${db.agents.length} agents`, 's');
+  addNotif(`⚡ Auto-assign 50/50: ${newCmds.length} commandes`, 'auto');
+}
+
+// Auto-assign automatique à chaque import Google Sheet
+function autoAssignOnImport(cmds) {
+  if (!db.agents.length || !cmds.length) return cmds;
+  const agentLoads = {};
+  db.agents.forEach(a => {
+    agentLoads[a.id] = db.commandes.filter(c =>
+      c.agentId === a.id &&
+      ['assigned','attempt1','attempt2','attempt3'].includes(c.confStatut)
+    ).length;
+  });
+  cmds.forEach(c => {
+    if (c.confStatut === 'new') {
+      const minAgent = db.agents.reduce((min, a) =>
+        (agentLoads[a.id] || 0) < (agentLoads[min.id] || 0) ? a : min
+      );
+      c.agentId = minAgent.id;
+      c.confStatut = 'assigned';
+      agentLoads[minAgent.id] = (agentLoads[minAgent.id] || 0) + 1;
+    }
+  });
+  return cmds;
 }
 
 function sendToCarrier(id) {
@@ -2368,7 +2404,7 @@ function openCarrierConfig(key) {
   document.getElementById('m-carrier-title').textContent = `🔑 ${c.icon} ${c.name} — Configuration API`;
   const instructionMap = {
     yalidine: 'Obtenez vos credentials sur <strong>app.yalidine.dz</strong> → Paramètres → API',
-    zr_express: 'Obtenez votre token API sur <strong>app.zrexpress.dz</strong> → Mon compte → API Key',
+    zr_express: 'Sur <strong>app.zrexpress.app</strong> → API Rest → Jetons API → Créer un jeton → Copiez le code généré',
     maystro: 'Obtenez votre API key sur <strong>maystro-delivery.com</strong> → Dashboard → API',
   };
   document.getElementById('m-carrier-body').innerHTML = `
@@ -2646,13 +2682,7 @@ function renderConfirmation() {
   if (!cmds.length) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-ico">📞</div><div class="empty-txt">Aucune commande en attente</div></div></td></tr>`; return; }
   tbody.innerHTML = cmds.map(c => {
     const ag = db.agents.find(a => a.id === c.agentId);
-    // Tous les rôles peuvent appeler, modifier et envoyer au transporteur
     const isAdmin = currentRole === 'admin' || currentRole === 'gerant';
-    const actions = `
-      <button class="btn btn-warn btn-xs" title="Appeler / Confirmer" onclick="openConfirm('${c.id}')">📞</button>
-      <button class="btn btn-success btn-xs" title="${c.confStatut==='confirmed'?'Envoyer au transporteur':'Confirmer d\'abord'}" onclick="sendToCarrier('${c.id}')" style="${c.confStatut!=='confirmed'?'opacity:.4':''}">🚀</button>
-      ${isAdmin ? `<button class="btn btn-g btn-xs" title="Assigner" onclick="openAssign('${c.id}')">👤</button>
-      <button class="btn btn-danger btn-xs" title="Supprimer" onclick="delCmd('${c.id}')">🗑</button>` : ''}`;
     return `<tr>
       <td><span class="mono accent" style="font-size:10px">${c.id}</span></td>
       <td>
@@ -2667,11 +2697,64 @@ function renderConfirmation() {
           : '<span class="muted" style="font-size:11px">—</span>'}
       </td>
       <td>${ag ? `<div style="display:flex;align-items:center;gap:6px"><div style="width:22px;height:22px;border-radius:50%;background:${ag.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000">${ag.nom[0]}</div><span style="font-size:11px">${ag.nom}</span></div>` : '<span class="muted">—</span>'}</td>
-      <td class="mono" style="color:var(--gold);text-align:center">${c.callAttempts || 0}</td>
       <td><span class="badge b-${c.confStatut}">${CONF_STATUTS[c.confStatut] || c.confStatut}</span></td>
-      <td><div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div></td>
+      <td>
+        <select class="fs" style="font-size:11px;padding:4px 6px;min-width:130px"
+          onchange="quickUpdateStatut('${c.id}', this.value)">
+          <option value="">— Statut appel —</option>
+          <option value="confirmed" ${c.confStatut==='confirmed'?'selected':''}>✅ Confirmé</option>
+          <option value="attempt1" ${c.confStatut==='attempt1'?'selected':''}>📞 Tentative 1</option>
+          <option value="attempt2" ${c.confStatut==='attempt2'?'selected':''}>📞 Tentative 2</option>
+          <option value="attempt3" ${c.confStatut==='attempt3'?'selected':''}>📞 Tentative 3</option>
+          <option value="attempt4" ${c.confStatut==='attempt4'?'selected':''}>📞 Tentative 4</option>
+          <option value="attempt5" ${c.confStatut==='attempt5'?'selected':''}>📞 Tentative 5</option>
+          <option value="postponed" ${c.confStatut==='postponed'?'selected':''}>🔄 Reporter</option>
+          <option value="cancelled" ${c.confStatut==='cancelled'?'selected':''}>❌ Annulé</option>
+          <option value="fake" ${c.confStatut==='fake'?'selected':''}>⛔ Fausse commande</option>
+        </select>
+      </td>
+      <td>
+        <button class="btn btn-warn btn-xs" title="Modifier + Confirmer" onclick="openConfirm('${c.id}')">✏️ Détails</button>
+        ${isAdmin ? `<button class="btn btn-danger btn-xs" title="Supprimer" onclick="delCmd('${c.id}')">🗑</button>` : ''}
+      </td>
     </tr>`;
   }).join('');
+}
+
+// Mise à jour rapide statut depuis dropdown + envoi auto si confirmé
+async function quickUpdateStatut(id, statut) {
+  if (!statut) return;
+  const c = db.commandes.find(x => x.id === id);
+  if (!c) return;
+
+  const oldStatut = c.confStatut;
+  c.confStatut = statut;
+  c.callAttempts = (c.callAttempts || 0) + 1;
+  c.updatedAt = new Date().toISOString();
+
+  if (!c.confNotes) c.confNotes = [];
+  c.confNotes.push({
+    date: new Date().toISOString(),
+    agentId: currentAgentId || 'admin',
+    statut,
+    note: CONF_STATUTS[statut] || statut
+  });
+
+  if (statut === 'confirmed') {
+    // Ouvrir modal pour modifications avant envoi
+    openConfirm(id);
+    return;
+  }
+
+  await upsertCommande(c);
+  saveDB();
+
+  const labels = { attempt1:'Tentative 1', attempt2:'Tentative 2', attempt3:'Tentative 3',
+    attempt4:'Tentative 4', attempt5:'Tentative 5', postponed:'Reporté',
+    cancelled:'Annulé', fake:'Fausse commande' };
+  toast(`${id} → ${labels[statut] || statut}`, 'i');
+  addNotif(`📞 ${id} — ${labels[statut] || statut} (${c.nom})`, 'attempt');
+  renderConfirmation();
 }
 
 function renderImports() {
@@ -6074,6 +6157,21 @@ window.syncSheets = async function() {
           existingTels.set(dupeKey, cmd);
         });
         if (newCmds.length > 0) {
+          // Auto-assign 50/50 directement à l'import
+          if (db.agents.length > 0) {
+            const loads = {};
+            db.agents.forEach(a => {
+              loads[a.id] = db.commandes.filter(c =>
+                c.agentId === a.id && ['assigned','attempt1','attempt2','attempt3','attempt4','attempt5'].includes(c.confStatut)
+              ).length;
+            });
+            newCmds.forEach(cmd => {
+              const minAgent = db.agents.reduce((min, a) => (loads[a.id]||0) < (loads[min.id]||0) ? a : min);
+              cmd.agentId = minAgent.id;
+              cmd.confStatut = 'assigned';
+              loads[minAgent.id] = (loads[minAgent.id]||0) + 1;
+            });
+          }
           newCmds.forEach(cmd => db.commandes.unshift(cmd));
           db.gsheets.lastSync = new Date().toISOString();
           saveDB();
