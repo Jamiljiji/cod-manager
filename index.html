@@ -1399,9 +1399,9 @@ let db = {
     yalidine:{connected:false},
     zr_express:{
       connected: true,
-      token: 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV',
+      token: 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t',
       tenantId: 'e6b652fe-7afc-4e6a-bc18-454008a963b9',
-      api_key: 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV',
+      api_key: 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t',
       defaultType: 'home'
     },
     maystro:{connected:false}
@@ -1845,10 +1845,10 @@ function mapYalidineStatus(status) {
 
 // ── ZR EXPRESS API
 async function zrCreateParcel(cmd, cfg) {
-  // ZR Express — API officielle app.zrexpress.app
-  // Auth: X-Api-Key dans header (le token/jeton copié depuis la plateforme)
-  const apiKey = (cfg?.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV').trim();
+  // ZR Express API — endpoint correct pour créer un colis
+  const apiKey = (cfg?.token || 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t').trim();
 
+  // Format officiel selon documentation ZR Express
   const payload = {
     customer: {
       customerId: null,
@@ -1880,34 +1880,53 @@ async function zrCreateParcel(cmd, cfg) {
     ExternalId: cmd.id || null,
   };
 
-  console.log('[ZR Express] Envoi:', JSON.stringify(payload).slice(0, 300));
+  // Essayer les endpoints dans l'ordre
+  const ENDPOINTS = [
+    { url: 'https://api.zrexpress.app/api/v1/parcels', headers: { 'X-Api-Key': apiKey } },
+    { url: 'https://api.zrexpress.app/api/v1.0/parcels', headers: { 'X-Api-Key': apiKey } },
+    { url: 'https://api.zrexpress.app/api/v1/parcels', headers: { 'Authorization': 'Bearer ' + apiKey } },
+  ];
 
-  const resp = await fetch('https://api.zrexpress.app/api/v1/parcels', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-Api-Key': apiKey,
-      'Authorization': 'Bearer ' + apiKey,
-    },
-    body: JSON.stringify(payload),
-  });
+  let lastErr = '';
+  for (const ep of ENDPOINTS) {
+    try {
+      const resp = await fetch(ep.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...ep.headers,
+        },
+        body: JSON.stringify(payload),
+      });
 
-  const data = await resp.json().catch(() => ({}));
-  console.log('[ZR Express] Réponse:', resp.status, JSON.stringify(data).slice(0, 300));
+      const data = await resp.json().catch(() => ({}));
+      console.log('[ZR] ' + ep.url + ' →', resp.status, JSON.stringify(data).slice(0, 200));
 
-  if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber || data?.code) {
-    const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
-    return { trackingNum: String(trackNum), raw: data };
+      // Vérifier si c'est une vraie réponse de création (pas le token lui-même)
+      if (data?.secretKey || data?.tenantId) {
+        // ZR a renvoyé le token — mauvais endpoint, on continue
+        lastErr = 'Mauvais endpoint (retourne token)';
+        continue;
+      }
+
+      if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber || data?.code) {
+        const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
+        return { trackingNum: String(trackNum), raw: data };
+      }
+
+      lastErr = 'HTTP ' + resp.status + ': ' + (data?.message || data?.detail || data?.title || JSON.stringify(data).slice(0, 100));
+    } catch(e) {
+      lastErr = e.message;
+    }
   }
 
-  const errMsg = data?.message || data?.detail || data?.title || data?.error || JSON.stringify(data).slice(0, 200);
-  throw new Error('ZR Express ' + resp.status + ': ' + errMsg);
+  throw new Error('ZR Express: ' + lastErr);
 }
 
 
 async function zrGetStatus(trackingNum, cfg) {
-  const apiKey = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
+  const apiKey = cfg.token || 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t';
   const tenantId = cfg.tenantId || 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
   try {
     const resp = await fetch('https://api.zrexpress.app/api/v1.0/parcels/' + trackingNum, {
@@ -2000,7 +2019,7 @@ async function autoSendToCarrier(id, carrier, type = 'home', notes = '') {
   // ZR Express: toujours connecté avec les credentials intégrés
   if (carrier === 'zr_express') {
     if (!cfg) cfg = {};
-    cfg.token = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
+    cfg.token = cfg.token || 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t';
     cfg.tenantId = cfg.tenantId || 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
     cfg.connected = true;
   }
