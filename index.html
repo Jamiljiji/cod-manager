@@ -1844,62 +1844,76 @@ function mapYalidineStatus(status) {
 
 // ── ZR EXPRESS API
 async function zrCreateParcel(cmd, cfg) {
-  // ZR Express nouvelle API — api.zrexpress.app
+  // ZR Express API v1 — format officiel
   const apiKey = cfg.token || 'JuN8OGr5bZJOX2oUxooYTSugj18JyOBpmd6PgcQDG9Okg52eJ3gUtiRGCh4WGrlV';
   const tenantId = cfg.tenantId || 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
 
+  // Format exact selon documentation ZR Express
   const payload = {
-    recipientName: cmd.nom,
-    recipientPhone: cmd.tel.replace(/^0/, '+213'),
-    recipientPhone2: '',
-    recipientAddress: cmd.adresse || cmd.wilaya || '',
-    wilayaId: WILAYA_IDS[cmd.wilaya] || 16,
-    communeName: cmd.commune || cmd.wilaya || '',
-    productName: cmd.produit || 'Colis',
-    price: cmd.montant,
-    codAmount: cmd.montant,
-    note: cmd.notes || '',
-    deliveryType: cmd.delivType === 'stopdesk' ? 'StopDesk' : 'Home',
-    weight: 1,
-    width: 1,
-    height: 1,
-    length: 1,
-    quantity: cmd.qte || 1,
+    customer: {
+      customerId: null, // ZR Express va créer le client automatiquement
+      name: cmd.nom,
+      phone: {
+        number1: cmd.tel.startsWith('0') ? '+213' + cmd.tel.slice(1) : cmd.tel,
+        number2: null,
+        number3: null,
+      }
+    },
+    deliveryAddress: {
+      cityTerritoryId: null, // On met null, ZR Express utilise le texte
+      districtTerritoryId: null,
+      Street: cmd.adresse || cmd.wilaya || '',
+    },
+    orderedProducts: [{
+      name: cmd.produit || 'Colis',
+      quantity: cmd.qte || 1,
+      price: cmd.montant,
+      weight: 1,
+      width: 1,
+      height: 1,
+      stockType: 'none',
+    }],
+    deliveryType: cmd.delivType === 'stopdesk' ? 'pickup-point' : 'home',
+    description: cmd.notes || (cmd.produit || 'Colis'),
+    amount: cmd.montant,
+    weight: {
+      weight: 1,
+      dimensionalWeight: 1,
+    },
+    ExternalId: cmd.id,
+    // Infos wilaya en texte pour faciliter
+    wilaya: cmd.wilaya || '',
+    commune: cmd.commune || cmd.wilaya || '',
   };
 
-  // API correcte: api.zrexpress.app avec X-Tenant + X-Api-Key
-  const endpoints = [
-    'https://api.zrexpress.app/api/v1.0/parcels',
-    'https://api.zrexpress.app/api/v1/parcels',
-    'https://api.zrexpress.app/parcels',
-  ];
+  try {
+    const resp = await fetch('https://api.zrexpress.app/api/v1/parcels', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + apiKey,
+        'X-Api-Key': apiKey,
+      },
+      body: JSON.stringify(payload),
+    });
 
-  let lastError = '';
-  for (const endpoint of endpoints) {
-    try {
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-Tenant': tenantId,
-          'X-Api-Key': apiKey,
-          'Authorization': 'Bearer ' + apiKey,
-        },
-        body: JSON.stringify(payload),
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber) {
-        const trackNum = data?.trackingNumber || data?.tracking_number || data?.tracking || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
-        toast('✅ ZR Express: Colis créé — ' + trackNum, 's');
-        return { trackingNum: String(trackNum), raw: data };
-      }
-      lastError = 'HTTP ' + resp.status + ': ' + JSON.stringify(data).slice(0, 200);
-    } catch(e) {
-      lastError = e.message;
+    const data = await resp.json().catch(() => ({}));
+
+    if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber) {
+      const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
+      toast('✅ ZR Express: Colis créé — ' + trackNum, 's');
+      return { trackingNum: String(trackNum), raw: data };
     }
+
+    // Log détaillé pour debug
+    console.error('[ZR Express] Erreur:', resp.status, JSON.stringify(data));
+    throw new Error('ZR Express HTTP ' + resp.status + ': ' + (data?.message || data?.detail || data?.title || JSON.stringify(data).slice(0, 150)));
+
+  } catch(e) {
+    console.error('[ZR Express]', e.message);
+    throw new Error('ZR Express: ' + e.message);
   }
-  throw new Error('ZR Express: ' + lastError);
 }
 
 
