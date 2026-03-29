@@ -2401,36 +2401,90 @@ function renderTransporteurs() {
 
 function openCarrierConfig(key) {
   const c = CARRIERS[key]; const cfg = db.carriers[key] || {};
-  document.getElementById('m-carrier-title').textContent = `🔑 ${c.icon} ${c.name} — Configuration API`;
-  const instructionMap = {
-    yalidine: 'Obtenez vos credentials sur <strong>app.yalidine.dz</strong> → Paramètres → API',
-    zr_express: 'Sur <strong>app.zrexpress.app</strong> → API Rest → Jetons API → Créer un jeton → Copiez le code généré',
-    maystro: 'Obtenez votre API key sur <strong>maystro-delivery.com</strong> → Dashboard → API',
-  };
-  document.getElementById('m-carrier-body').innerHTML = `
-    <input type="hidden" id="cc-key" value="${key}">
-    <div class="info-box">${instructionMap[key] || 'Entrez vos credentials API.'}</div>
-    ${c.fields.map(f => `<div class="fg"><label class="fl">${f.replace(/_/g, ' ').toUpperCase()}</label><input class="fi" id="cc-${f}" placeholder="${f}" value="${cfg[f] || ''}"></div>`).join('')}
-    <div class="fg"><label class="fl">Type livraison par défaut</label>
-      <select class="fs" id="cc-type">
-        <option value="home" ${cfg.defaultType === 'home' ? 'selected' : ''}>À domicile</option>
-        <option value="stopdesk" ${cfg.defaultType === 'stopdesk' ? 'selected' : ''}>Stop desk</option>
-      </select>
-    </div>
-    ${cfg.connected ? `<div style="margin-top:10px"><button class="btn btn-danger btn-sm" onclick="disconnectCarrier('${key}')">🔌 Déconnecter</button></div>` : ''}`;
+  document.getElementById('m-carrier-title').textContent = c.icon + ' ' + c.name + ' — Connexion API';
+
+  // Pour ZR Express: juste 1 champ token
+  let bodyHTML = '<input type="hidden" id="cc-key" value="' + key + '">';
+
+  if (key === 'zr_express') {
+    const currentToken = cfg.token || '';
+    const isConnected = cfg.connected && currentToken;
+    bodyHTML += `
+      <div style="background:rgba(245,198,66,.1);border:1px solid rgba(245,198,66,.3);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px">
+        <strong>Comment obtenir le token ZR Express :</strong><br>
+        1. Va sur <strong>app.zrexpress.app</strong><br>
+        2. Clique sur <strong>API Rest</strong> dans le menu<br>
+        3. Clique sur <strong>Jetons API</strong><br>
+        4. Clique sur <strong>+ Créer un jeton</strong><br>
+        5. Copie le <strong>code secret</strong> et colle-le ici
+      </div>
+      <div class="fg">
+        <label class="fl">🔑 Token Secret ZR Express</label>
+        <input class="fi" id="cc-token" placeholder="Colle ton token ici..." value="${currentToken}" style="font-family:monospace;font-size:12px">
+      </div>
+      <div class="fg">
+        <label class="fl">Type livraison par défaut</label>
+        <select class="fs" id="cc-type">
+          <option value="home" ${cfg.defaultType !== 'stopdesk' ? 'selected' : ''}>À domicile</option>
+          <option value="stopdesk" ${cfg.defaultType === 'stopdesk' ? 'selected' : ''}>Stop desk</option>
+        </select>
+      </div>
+      ${isConnected ? '<div style="color:var(--green);font-size:12px;margin-top:8px">✅ ZR Express connecté</div>' : ''}
+    `;
+  } else {
+    bodyHTML += `<div class="fg"><label class="fl">Token / Clé API</label><input class="fi" id="cc-token" placeholder="Token..." value="${cfg.token || ''}"></div>`;
+    if (key === 'yalidine') {
+      bodyHTML += `<div class="fg"><label class="fl">API ID</label><input class="fi" id="cc-api_id" placeholder="ID..." value="${cfg.api_id || ''}"></div>`;
+    }
+    bodyHTML += `<div class="fg"><label class="fl">Type livraison</label><select class="fs" id="cc-type"><option value="home">À domicile</option><option value="stopdesk">Stop desk</option></select></div>`;
+  }
+
+  document.getElementById('m-carrier-body').innerHTML = bodyHTML;
   open_modal('m-carrier');
 }
 
 async function saveCarrierConfigUI() {
-  const key = document.getElementById('cc-key').value;
-  const c = CARRIERS[key];
-  const cfg = { connected: true, defaultType: document.getElementById('cc-type')?.value || 'home' };
-  c.fields.forEach(f => { cfg[f] = document.getElementById('cc-' + f)?.value || ''; });
+  const key = document.getElementById('cc-key')?.value;
+  if (!key) { toast('Erreur: transporteur non identifié', 'e'); return; }
+
+  const token = document.getElementById('cc-token')?.value?.trim() || '';
+  const delivType = document.getElementById('cc-type')?.value || 'home';
+
+  if (!token) { toast('⚠️ Entre ton token avant de connecter', 'w'); return; }
+
+  const cfg = {
+    connected: true,
+    token: token,
+    api_key: token, // alias pour compatibilité
+    defaultType: delivType,
+  };
+
+  // Pour ZR Express: garder tenantId intégré
+  if (key === 'zr_express') {
+    cfg.tenantId = 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
+  }
+  if (key === 'yalidine') {
+    cfg.api_id = document.getElementById('cc-api_id')?.value?.trim() || '';
+  }
+
+  // Sauvegarder dans db
   db.carriers[key] = cfg;
-  await saveCarrierConfig(key, cfg);
-  close_modal('m-carrier'); renderTransporteurs(); renderDashboard();
-  toast(`${c.name} connecté !`, 's');
-  addNotif(`🔑 ${c.name} API connectée`, 'carrier');
+
+  // Sauvegarder dans Supabase
+  try {
+    await saveCarrierConfig(key, cfg);
+  } catch(e) {
+    console.warn('[Carrier save]', e.message);
+  }
+
+  // Sauvegarder en local aussi
+  saveDB();
+
+  close_modal('m-carrier');
+  renderTransporteurs();
+  renderDashboard();
+  toast('✅ ' + CARRIERS[key].name + ' connecté avec succès !', 's');
+  addNotif('🔑 ' + CARRIERS[key].name + ' connecté', 'carrier');
 }
 
 async function disconnectCarrier(key) {
