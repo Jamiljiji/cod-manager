@@ -1896,21 +1896,16 @@ function mapYalidineStatus(status) {
 async function zrCreateParcel(cmd, cfg) {
   const apiKey = (cfg?.token || localStorage.getItem('zr-token') || 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t').trim();
 
-  // Téléphone format international +213
+  // Téléphone format +213
   let phone = (cmd.tel || '').replace(/\s/g, '');
   if (phone.startsWith('0')) phone = '+213' + phone.slice(1);
   else if (!phone.startsWith('+')) phone = '+213' + phone;
 
-  // Payload format officiel ZR Express API v1
   const payload = {
     customer: {
       customerId: null,
       name: (cmd.nom || 'Client').trim(),
-      phone: {
-        number1: phone,
-        number2: null,
-        number3: null,
-      }
+      phone: { number1: phone, number2: null, number3: null }
     },
     deliveryAddress: {
       cityTerritoryId: null,
@@ -1921,9 +1916,7 @@ async function zrCreateParcel(cmd, cfg) {
       name: (cmd.produit || 'Colis').trim(),
       quantity: Number(cmd.qte) || 1,
       price: Number(cmd.montant) || 0,
-      weight: 1,
-      width: 1,
-      height: 1,
+      weight: 1, width: 1, height: 1,
       stockType: 'none',
     }],
     deliveryType: cmd.delivType === 'stopdesk' ? 'pickup-point' : 'home',
@@ -1933,21 +1926,20 @@ async function zrCreateParcel(cmd, cfg) {
     ExternalId: cmd.id,
   };
 
-  console.log('[ZR Express] → Envoi:', JSON.stringify({
+  console.log('[ZR Express] → Envoi via proxy:', JSON.stringify({
     client: payload.customer.name,
     tel: payload.customer.phone.number1,
     montant: payload.amount,
-    produit: payload.orderedProducts[0].name,
   }));
 
-  const resp = await fetch('https://api.zrexpress.app/api/v1/parcels', {
+  // Appel via proxy Supabase Edge Function (évite CORS)
+  const resp = await fetch('https://ythrdsrolzgrikzcswpq.supabase.co/functions/v1/zr-proxy', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-Api-Key': apiKey,
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0aHJkc3JvbHpncmlremNzd3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MDY3NzksImV4cCI6MjA5MDA4Mjc3OX0.Qj7nzVYN2NQzM6b5CtO4wTzUk6Cy6Dm3NnCB3FUenoQ',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ token: apiKey, payload }),
   });
 
   const text = await resp.text();
@@ -1956,9 +1948,8 @@ async function zrCreateParcel(cmd, cfg) {
   let data = {};
   try { data = JSON.parse(text); } catch(e) {}
 
-  // Si ZR retourne le token au lieu du colis = mauvaise auth
   if (data?.secretKey || data?.tenantId) {
-    throw new Error('Token invalide ou expiré — créez un nouveau jeton sur app.zrexpress.app → API Rest → Jetons API');
+    throw new Error('Token ZR Express invalide — créez un nouveau jeton sur app.zrexpress.app');
   }
 
   if (resp.ok) {
@@ -1967,7 +1958,7 @@ async function zrCreateParcel(cmd, cfg) {
     return { trackingNum: String(trackNum), raw: data };
   }
 
-  const errMsg = data?.message || data?.detail || data?.title || data?.error || text.slice(0, 200);
+  const errMsg = data?.message || data?.detail || data?.error || text.slice(0, 200);
   throw new Error('ZR Express ' + resp.status + ': ' + errMsg);
 }
 
