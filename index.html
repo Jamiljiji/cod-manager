@@ -947,6 +947,29 @@ async function loadDB() {
     }
   } catch (e) {}
 
+  // Restaurer token ZR Express depuis localStorage dédié
+  const savedZrToken = localStorage.getItem('zr-token');
+  if (savedZrToken) {
+    db.carriers.zr_express = {
+      connected: true,
+      token: savedZrToken,
+      tenantId: 'e6b652fe-7afc-4e6a-bc18-454008a963b9',
+      api_key: savedZrToken,
+      defaultType: db.carriers.zr_express?.defaultType || 'home',
+    };
+  } else {
+    // Token intégré par défaut
+    if (!db.carriers.zr_express?.connected) {
+      db.carriers.zr_express = {
+        connected: true,
+        token: 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t',
+        tenantId: 'e6b652fe-7afc-4e6a-bc18-454008a963b9',
+        api_key: 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t',
+        defaultType: 'home',
+      };
+    }
+  }
+
   // 2. Si Supabase connecté, charger depuis la DB
   if (supabaseReady && currentSession) {
     await loadFromSupabase();
@@ -978,8 +1001,18 @@ async function loadFromSupabase() {
 
     // Charger config carriers
     const { data: carriers } = await sbClient.from('carriers_config').select('*');
-    if (carriers) {
+    if (carriers && carriers.length > 0) {
       carriers.forEach(c => { db.carriers[c.carrier_key] = { ...c.config, connected: c.connected }; });
+    }
+    // ZR Express — toujours connecté avec les credentials intégrés (ne jamais perdre)
+    if (!db.carriers.zr_express?.connected || !db.carriers.zr_express?.token) {
+      db.carriers.zr_express = {
+        connected: true,
+        token: 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t',
+        tenantId: 'e6b652fe-7afc-4e6a-bc18-454008a963b9',
+        api_key: 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t',
+        defaultType: 'home',
+      };
     }
 
     // Charger params
@@ -1068,9 +1101,25 @@ async function upsertProduit(prod) {
 }
 
 async function saveCarrierConfig(key, cfg) {
-  if (!supabaseReady) { saveDB(); return; }
-  await sbClient.from('carriers_config').upsert({ carrier_key: key, connected: cfg.connected, config: cfg }, { onConflict: 'carrier_key' });
-  saveDB();
+  // Toujours sauvegarder en localStorage d'abord
+  db.carriers[key] = cfg;
+  localStorage.setItem('cod-pro-dz', JSON.stringify(db));
+
+  if (!supabaseReady) { return; }
+
+  try {
+    const { error } = await sbClient.from('carriers_config').upsert(
+      { carrier_key: key, connected: cfg.connected, config: cfg },
+      { onConflict: 'carrier_key' }
+    );
+    if (error) {
+      console.warn('[Carrier save Supabase]', error.message);
+    } else {
+      console.log('[Carrier save] ✅', key, 'sauvegardé dans Supabase');
+    }
+  } catch(e) {
+    console.warn('[Carrier save]', e.message);
+  }
 }
 
 async function saveParamDB(key, value) {
@@ -1845,16 +1894,20 @@ function mapYalidineStatus(status) {
 
 // ── ZR EXPRESS API
 async function zrCreateParcel(cmd, cfg) {
-  // ZR Express API — endpoint correct pour créer un colis
-  const apiKey = (cfg?.token || 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t').trim();
+  const apiKey = (cfg?.token || localStorage.getItem('zr-token') || 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t').trim();
 
-  // Format officiel selon documentation ZR Express
+  // Téléphone format international +213
+  let phone = (cmd.tel || '').replace(/\s/g, '');
+  if (phone.startsWith('0')) phone = '+213' + phone.slice(1);
+  else if (!phone.startsWith('+')) phone = '+213' + phone;
+
+  // Payload format officiel ZR Express API v1
   const payload = {
     customer: {
       customerId: null,
-      name: cmd.nom || 'Client',
+      name: (cmd.nom || 'Client').trim(),
       phone: {
-        number1: cmd.tel.startsWith('0') ? '+213' + cmd.tel.slice(1) : cmd.tel,
+        number1: phone,
         number2: null,
         number3: null,
       }
@@ -1862,66 +1915,60 @@ async function zrCreateParcel(cmd, cfg) {
     deliveryAddress: {
       cityTerritoryId: null,
       districtTerritoryId: null,
-      Street: (cmd.adresse || cmd.commune || cmd.wilaya || '').slice(0, 200),
+      Street: (cmd.adresse || cmd.commune || cmd.wilaya || 'Algérie').trim(),
     },
     orderedProducts: [{
-      name: (cmd.produit || 'Colis').slice(0, 100),
-      quantity: cmd.qte || 1,
-      price: cmd.montant || 0,
+      name: (cmd.produit || 'Colis').trim(),
+      quantity: Number(cmd.qte) || 1,
+      price: Number(cmd.montant) || 0,
       weight: 1,
       width: 1,
       height: 1,
       stockType: 'none',
     }],
     deliveryType: cmd.delivType === 'stopdesk' ? 'pickup-point' : 'home',
-    description: (cmd.notes || cmd.produit || 'Colis').slice(0, 200),
-    amount: cmd.montant || 0,
+    description: (cmd.notes || cmd.produit || 'Colis').trim(),
+    amount: Number(cmd.montant) || 0,
     weight: { weight: 1, dimensionalWeight: 1 },
-    ExternalId: cmd.id || null,
+    ExternalId: cmd.id,
   };
 
-  // Essayer les endpoints dans l'ordre
-  const ENDPOINTS = [
-    { url: 'https://api.zrexpress.app/api/v1/parcels', headers: { 'X-Api-Key': apiKey } },
-    { url: 'https://api.zrexpress.app/api/v1.0/parcels', headers: { 'X-Api-Key': apiKey } },
-    { url: 'https://api.zrexpress.app/api/v1/parcels', headers: { 'Authorization': 'Bearer ' + apiKey } },
-  ];
+  console.log('[ZR Express] → Envoi:', JSON.stringify({
+    client: payload.customer.name,
+    tel: payload.customer.phone.number1,
+    montant: payload.amount,
+    produit: payload.orderedProducts[0].name,
+  }));
 
-  let lastErr = '';
-  for (const ep of ENDPOINTS) {
-    try {
-      const resp = await fetch(ep.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...ep.headers,
-        },
-        body: JSON.stringify(payload),
-      });
+  const resp = await fetch('https://api.zrexpress.app/api/v1/parcels', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Api-Key': apiKey,
+    },
+    body: JSON.stringify(payload),
+  });
 
-      const data = await resp.json().catch(() => ({}));
-      console.log('[ZR] ' + ep.url + ' →', resp.status, JSON.stringify(data).slice(0, 200));
+  const text = await resp.text();
+  console.log('[ZR Express] ← Réponse:', resp.status, text.slice(0, 300));
 
-      // Vérifier si c'est une vraie réponse de création (pas le token lui-même)
-      if (data?.secretKey || data?.tenantId) {
-        // ZR a renvoyé le token — mauvais endpoint, on continue
-        lastErr = 'Mauvais endpoint (retourne token)';
-        continue;
-      }
+  let data = {};
+  try { data = JSON.parse(text); } catch(e) {}
 
-      if (resp.ok || data?.id || data?.parcelId || data?.trackingNumber || data?.code) {
-        const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
-        return { trackingNum: String(trackNum), raw: data };
-      }
-
-      lastErr = 'HTTP ' + resp.status + ': ' + (data?.message || data?.detail || data?.title || JSON.stringify(data).slice(0, 100));
-    } catch(e) {
-      lastErr = e.message;
-    }
+  // Si ZR retourne le token au lieu du colis = mauvaise auth
+  if (data?.secretKey || data?.tenantId) {
+    throw new Error('Token invalide ou expiré — créez un nouveau jeton sur app.zrexpress.app → API Rest → Jetons API');
   }
 
-  throw new Error('ZR Express: ' + lastErr);
+  if (resp.ok) {
+    const trackNum = data?.trackingNumber || data?.tracking_number || data?.code || data?.id || data?.parcelId || generateTrackingNum('zr_express');
+    console.log('[ZR Express] ✅ Colis créé — Tracking:', trackNum);
+    return { trackingNum: String(trackNum), raw: data };
+  }
+
+  const errMsg = data?.message || data?.detail || data?.title || data?.error || text.slice(0, 200);
+  throw new Error('ZR Express ' + resp.status + ': ' + errMsg);
 }
 
 
@@ -2296,15 +2343,19 @@ function autoAssignOnImport(cmds) {
 function sendToCarrier(id) {
   const c = db.commandes.find(x => x.id === id);
   if (!c) return;
-  // Confirmateur peut aussi envoyer au transporteur
-  if (c.confStatut !== 'confirmed' && !c.delivPhase) {
-    // Demander confirmation si pas encore confirmé
-    if (!confirm(`La commande ${id} n'est pas encore confirmée. Voulez-vous quand même l'envoyer au transporteur ?`)) return;
+  if (c.confStatut !== 'confirmed') {
+    if (!confirm('La commande ' + id + ' n\'est pas encore confirmée. Envoyer quand même ?')) return;
   }
-  document.getElementById('sc-id').value = id;
-  document.getElementById('sc-display').value = `${id} — ${c.nom} — ${c.wilaya} — ${c.montant.toLocaleString()} DZD`;
-  document.getElementById('sc-notes').value = c.notes || '';
-  open_modal('m-send-carrier');
+  // Envoyer directement à ZR Express (transporteur par défaut)
+  const carrier = 'zr_express';
+  const type = c.delivType || 'home';
+  // S'assurer que ZR Express est configuré
+  if (!db.carriers.zr_express) db.carriers.zr_express = {};
+  db.carriers.zr_express.token = db.carriers.zr_express.token || localStorage.getItem('zr-token') || 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t';
+  db.carriers.zr_express.tenantId = 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
+  db.carriers.zr_express.connected = true;
+  db.carriers.zr_express.api_key = db.carriers.zr_express.token;
+  autoSendToCarrier(id, carrier, type, '');
 }
 
 function confirmSendCarrier() {
@@ -2496,14 +2547,15 @@ async function saveCarrierConfigUI() {
     console.warn('[Carrier save]', e.message);
   }
 
-  // Sauvegarder en local aussi
-  saveDB();
+  // Sauvegarder partout
+  localStorage.setItem('cod-pro-dz', JSON.stringify(db));
+  localStorage.setItem('zr-token', cfg.token || '');
 
   close_modal('m-carrier');
   renderTransporteurs();
   renderDashboard();
-  toast('✅ ' + CARRIERS[key].name + ' connecté avec succès !', 's');
-  addNotif('🔑 ' + CARRIERS[key].name + ' connecté', 'carrier');
+  toast('✅ ' + CARRIERS[key].name + ' connecté ! Token sauvegardé.', 's');
+  addNotif('🔑 ' + CARRIERS[key].name + ' connecté avec succès', 'carrier');
 }
 
 async function disconnectCarrier(key) {
@@ -6426,18 +6478,31 @@ window.addProduit = function() { openAddProductModal(); };
 // ── Confirmateur actions — COMPLET
 // Confirmateur peut: appeler, modifier commande, envoyer au transporteur
 async function saveAndSendCarrier() {
-  // D'abord sauvegarder la confirmation
   const id = document.getElementById('mc-id')?.value;
   if (!id) return;
-  // Force statut confirmed
+
+  // 1. Forcer statut confirmé
   const statutEl = document.getElementById('mc-statut');
   if (statutEl) statutEl.value = 'confirmed';
+
+  // 2. Sauvegarder les modifications (prix, adresse, etc.)
   await saveConfirmation();
-  // Envoyer au transporteur
+
+  // 3. Fermer le modal
+  close_modal('m-confirm');
+
+  // 4. S'assurer que ZR Express est configuré
+  if (!db.carriers.zr_express) db.carriers.zr_express = {};
+  db.carriers.zr_express.token = db.carriers.zr_express.token || localStorage.getItem('zr-token') || 'TwDKHDfzEUftGWRxoNzAxSIn9lXjHdcTUiBjmapWZDwEi492zqPHy4dwiuDTup2t';
+  db.carriers.zr_express.tenantId = 'e6b652fe-7afc-4e6a-bc18-454008a963b9';
+  db.carriers.zr_express.connected = true;
+  db.carriers.zr_express.api_key = db.carriers.zr_express.token;
+
+  // 5. Envoyer directement à ZR Express
   const c = db.commandes.find(x => x.id === id);
   if (c) {
-    close_modal('m-confirm');
-    sendToCarrier(id);
+    toast('🚀 Envoi vers ZR Express...', 'i');
+    await autoSendToCarrier(id, 'zr_express', c.delivType || 'home', '');
   }
 }
 
@@ -6462,18 +6527,7 @@ setTimeout(initMultiSheet, 1000);
 // CONFIRMATEUR — Accès complet : appel + modification + envoi
 // ════════════════════════════════════════════════════════
 
-// ── Confirmer ET envoyer au transporteur en un clic
-async function saveAndSendCarrier() {
-  const id = document.getElementById('mc-id')?.value;
-  if (!id) return;
-  const statutEl = document.getElementById('mc-statut');
-  if (statutEl) statutEl.value = 'confirmed';
-  await saveConfirmation();
-  const c = db.commandes.find(x => x.id === id);
-  if (c && c.confStatut === 'confirmed') {
-    sendToCarrier(id);
-  }
-}
+// saveAndSendCarrier — défini plus haut
 
 // ── Patch renderConfirmation: tous les rôles voient les boutons complets
 const _origRenderConfFix = window.renderConfirmation;
