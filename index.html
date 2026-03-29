@@ -1933,7 +1933,7 @@ async function zrCreateParcel(cmd, cfg) {
   }));
 
   // Appel via proxy Supabase Edge Function (évite CORS)
-  const resp = await fetch('https://ythrdsrolzgrikzcswpq.supabase.co/functions/v1/zr-proxy', {
+  const resp = await fetch('https://ythrdsrolzgrikzcswpq.supabase.co/functions/v1/bright-processor', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
